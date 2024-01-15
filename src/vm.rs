@@ -1,8 +1,8 @@
 use crate::memory::Addressable;
 use crate::memory::LinearMemory;
 
-const REGISTER_COUNT: usize = 8;
-const MEMORY_KILO_BYTES: usize = 8;
+pub(crate) const REGISTER_COUNT: usize = 8;
+pub(crate) const MEMORY_KILO_BYTES: usize = 8;
 
 pub enum Register {
     A = 0,  // General purpose
@@ -15,9 +15,14 @@ pub enum Register {
     FL = 7, // Flags register
 }
 
+#[repr(u8)]
+pub enum Op {
+    Nop,
+}
+
 pub struct Machine {
+    pub memory: Box<dyn Addressable>,
     registers: [u16; REGISTER_COUNT],
-    memory: Box<dyn Addressable>,
 }
 
 impl Default for Machine {
@@ -36,10 +41,13 @@ impl Machine {
 
     pub fn step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let pc = self.registers[Register::PC as usize];
-        let instruction = self.memory.read_u16(pc)?;
         self.registers[Register::PC as usize] = pc + 2;
-        println!("{} @ {}", instruction, pc);
+        let instruction = self.memory.read_u16(pc)?;
+        let op = (instruction & 0xff) as u8;
 
-        Ok(())
+        match op {
+            op if op == Op::Nop as u8 => Ok(()),
+            _ => Err(format!("Invalid operator at 0x{:X} @ PC {}", op, pc).into()),
+        }
     }
 }
