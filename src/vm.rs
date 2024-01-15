@@ -103,6 +103,7 @@ impl Machine {
 
     pub fn pop(&mut self) -> Result<u16, Box<dyn std::error::Error>> {
         let sp = self.registers[Register::SP as usize] - 2;
+        self.registers[Register::SP as usize] -= 2;
 
         self.memory
             .read_u16(sp)
