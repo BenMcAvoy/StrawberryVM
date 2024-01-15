@@ -14,7 +14,7 @@ pub trait Addressable {
 
     fn write_u16(&mut self, addr: u16, value: u16) -> Result<(), MemoryError> {
         let lower = value & 0xff;
-        let upper = value & 0xff00 >> 8;
+        let upper = (value & 0xff00) >> 8;
 
         self.write(addr, lower as u8)?;
         self.write(addr + 1, upper as u8)
