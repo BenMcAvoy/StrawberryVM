@@ -40,6 +40,6 @@ mod tests {
         machine.step().unwrap(); // ADDSTACK
         machine.step().unwrap(); // POPREGISTER A
 
-        assert_ne!(machine.get_register(Register::A), 18);
+        assert_eq!(machine.get_register(Register::A), 18);
     }
 }
