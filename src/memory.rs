@@ -79,7 +79,7 @@ impl Addressable for LinearMemory {
     }
 
     fn write(&mut self, addr: u16, value: u8) -> Result<(), MemoryError> {
-        if (addr as usize) < self.size {
+        if (addr as usize) > self.size {
             return Err(MemoryError::OutOfBounds);
         }
 
