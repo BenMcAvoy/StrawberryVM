@@ -3,6 +3,8 @@
 A fantasy virtual machine with limits on resources.
 
 ## TODO
+- [x] Basic instructions
+- [x] Addition implementation
 - [ ] Loading from a file
 - [ ] Assembler
 - [ ] Turing completion
