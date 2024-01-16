@@ -62,7 +62,7 @@ fn parse_instruction(ins: u16) -> Result<Op, String> {
         x if x == Op::Nop.value() => Ok(Op::Nop),
         x if x == Op::Push(0).value() => {
             let arg = parse_instruction_arg(ins);
-            Ok(Op::Push(arg as u8))
+            Ok(Op::Push(arg))
         }
 
         x if x == Op::PopReg(Register::A).value() => {
