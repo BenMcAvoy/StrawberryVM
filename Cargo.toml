@@ -7,3 +7,9 @@ edition = "2021"
 
 [[bin]]
 name = "addition"
+
+[[bin]]
+name = "asm"
+
+[[bin]]
+name = "machine"
