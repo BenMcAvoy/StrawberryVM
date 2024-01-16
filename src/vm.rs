@@ -111,7 +111,7 @@ impl Machine {
             .map(Ok)?
     }
 
-    pub fn step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn step(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
         let pc = self.registers[Register::PC as usize];
         self.registers[Register::PC as usize] = pc + 2;
         let instruction = self.memory.read_u16(pc)?;
@@ -120,24 +120,30 @@ impl Machine {
         println!("Got op {op:?}");
 
         match op {
-            Op::Nop => Ok(()),
-            Op::Push(v) => self.push(v),
+            Op::Nop => Ok(false),
+            Op::Push(v) => {
+                self.push(v)?;
+                Ok(true)
+            },
+
             Op::PopReg(r) => {
                 let popped = self.pop()?;
                 self.registers[r as usize] = popped;
-                Ok(())
+                Ok(true)
             },
 
             Op::AddStack => {
                 let a = self.pop()?;
                 let b = self.pop()?;
 
-                self.push((a + b) as u8)
+                self.push((a + b) as u8)?;
+
+                Ok(true)
             }
 
             Op::AddReg(r1, r2) => {
                 self.registers[r1 as usize] += self.registers[r2 as usize];
-                Ok(())
+                Ok(true)
             }
         }
     }

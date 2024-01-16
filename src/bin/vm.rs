@@ -13,10 +13,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     vm.memory.write(6, 0x2)?;
     vm.memory.write(7, 0)?;
 
-    vm.step()?;
-    vm.step()?;
-    vm.step()?;
-    vm.step()?;
+    // Loop until we get `Nop`
+    // TODO: Use hault!
+    while vm.step()? {}
 
     println!("A = {}", vm.get_register(Register::A));
 
