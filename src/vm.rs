@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::memory::Addressable;
 use crate::memory::LinearMemory;
 
@@ -40,6 +42,7 @@ pub enum Op {
     PopReg(Register),
     AddStack,
     AddReg(Register, Register),
+    Signal(u8),
 }
 
 impl Op {
@@ -48,13 +51,17 @@ impl Op {
     }
 }
 
+fn parse_instruction_arg(ins: u16) -> u8 {
+    ((ins & 0xff00) >> 8) as u8
+}
+
 fn parse_instruction(ins: u16) -> Result<Op, String> {
     let op = (ins & 0xff) as u8;
 
     match op {
         x if x == Op::Nop.value() => Ok(Op::Nop),
         x if x == Op::Push(0).value() => {
-            let arg = (ins & 0xff00) >> 8;
+            let arg = parse_instruction_arg(ins);
             Ok(Op::Push(arg as u8))
         }
 
@@ -67,13 +74,24 @@ fn parse_instruction(ins: u16) -> Result<Op, String> {
 
         x if x == Op::AddStack.value() => Ok(Op::AddStack),
 
+        x if x == Op::Signal(0).value() => {
+            let arg = parse_instruction_arg(ins);
+            Ok(Op::Signal(arg))
+        }
+
         _ => Err(format!("Failed to parse instruction 0x{:X}", op)),
     }
 }
 
+type SignalFunction = fn(&mut Machine) -> Result<(), String>;
+
 pub struct Machine {
     pub memory: Box<dyn Addressable>,
     registers: [u16; REGISTER_COUNT],
+
+    signal_handlers: HashMap<u8, SignalFunction>,
+
+    pub machine_halted: bool,
 }
 
 impl Default for Machine {
@@ -87,11 +105,18 @@ impl Machine {
         Self {
             registers: [0; REGISTER_COUNT],
             memory: Box::new(LinearMemory::new(MEMORY_KILO_BYTES * 1024)),
+
+            signal_handlers: HashMap::new(),
+            machine_halted: false,
         }
     }
 
     pub fn get_register(&self, r: Register) -> u16 {
         self.registers[r as usize]
+    }
+
+    pub fn define_handler(&mut self, id: u8, handler: SignalFunction) {
+        self.signal_handlers.insert(id, handler);
     }
 
     pub fn push(&mut self, v: u8) -> Result<(), Box<dyn std::error::Error>> {
@@ -111,7 +136,7 @@ impl Machine {
             .map(Ok)?
     }
 
-    pub fn step(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let pc = self.registers[Register::PC as usize];
         self.registers[Register::PC as usize] = pc + 2;
         let instruction = self.memory.read_u16(pc)?;
@@ -120,16 +145,16 @@ impl Machine {
         println!("{} | Got instruction {op:?}", pc);
 
         match op {
-            Op::Nop => Ok(false),
+            Op::Nop => Ok(()),
             Op::Push(v) => {
                 self.push(v)?;
-                Ok(true)
+                Ok(())
             }
 
             Op::PopReg(r) => {
                 let popped = self.pop()?;
                 self.registers[r as usize] = popped;
-                Ok(true)
+                Ok(())
             }
 
             Op::AddStack => {
@@ -138,12 +163,20 @@ impl Machine {
 
                 self.push((a + b) as u8)?;
 
-                Ok(true)
+                Ok(())
             }
 
             Op::AddReg(r1, r2) => {
                 self.registers[r1 as usize] += self.registers[r2 as usize];
-                Ok(true)
+                Ok(())
+            }
+
+            Op::Signal(signal) => {
+                self.signal_handlers
+                    .get(&signal)
+                    .ok_or(format!("Unknown signal 0x{:X}", signal))?(self)?;
+
+                Ok(())
             }
         }
     }

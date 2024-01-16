@@ -2,6 +2,12 @@ use std::{env, fs::File, io::Read, path::Path};
 
 use strawberryvm::vm::{Machine, Register};
 
+fn sig_hault(vm: &mut Machine) -> Result<(), String> {
+    vm.machine_halted = true;
+
+    Ok(())
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     assert!(args.len() >= 2);
@@ -16,11 +22,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut vm = Machine::new();
 
-    vm.memory.load(&program, 0)?;
+    vm.define_handler(0x90, sig_hault);
 
-    // Loop until we get `Nop`
-    // TODO: Use hault!
-    while vm.step()? {}
+    vm.memory.load(&program, 0)?;
+    while !vm.machine_halted {
+        vm.step()?;
+    }
 
     println!("A = {}", vm.get_register(Register::A));
 
