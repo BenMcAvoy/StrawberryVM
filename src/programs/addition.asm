@@ -1,5 +1,6 @@
-01 0A // Push
-01 F0 // Push
-03 00 // Add stack
-02 00 // Pop reg
-05 90 // Hault
+; 01 0A 01 F0 03 00 02 00 05 90
+Push 10
+Push 240
+AddStack
+PopReg A
+Signal 144
