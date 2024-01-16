@@ -139,8 +139,6 @@ impl Machine {
                 self.registers[r1 as usize] += self.registers[r2 as usize];
                 Ok(())
             }
-
-            _ => Err(format!("Invalid operator {:?} @ PC {}", op, pc).into()),
         }
     }
 }
