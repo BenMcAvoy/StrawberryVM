@@ -6,7 +6,7 @@ use crate::memory::LinearMemory;
 pub(crate) const REGISTER_COUNT: usize = 8;
 pub(crate) const MEMORY_KILO_BYTES: usize = 8;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Register {
     A = 0,  // General purpose
     B = 1,  // General purpose
@@ -34,9 +34,8 @@ impl From<u8> for Register {
     }
 }
 
-#[repr(u8)]
 #[derive(Debug)]
-pub enum Op {
+pub enum Instruction {
     Nop,
     Push(u8),
     PopReg(Register),
@@ -45,9 +44,69 @@ pub enum Op {
     Signal(u8),
 }
 
-impl Op {
-    pub fn value(&self) -> u8 {
-        unsafe { *<*const _>::from(self).cast::<u8>() }
+impl Instruction {
+    fn encode_r1(r: Register) -> u16 {
+        (r as u16) & 0xf << 8
+    }
+
+    fn encode_r2(r: Register) -> u16 {
+        (r as u16) & 0xf << 12
+    }
+
+    fn encode_num(u: u16) -> u16 {
+        u << 8
+    }
+
+    fn encode_rs(r1: Register, r2: Register) -> u16 {
+        Self::encode_r1(r1) | Self::encode_r2(r2)
+    }
+
+    pub fn encode_u16(&self) -> u16 {
+        match self {
+            Self::Nop => OpCode::Nop as u16,
+            Self::Push(x) => OpCode::Push as u16 | Self::encode_num(*x as u16),
+            Self::PopReg(r) => OpCode::PopReg as u16 | Self::encode_r1(*r),
+            Self::AddStack => OpCode::AddStack as u16,
+            Self::AddReg(r1, r2) => OpCode::AddReg as u16 | Self::encode_rs(*r1, *r2),
+            Self::Signal(x) => OpCode::Signal as u16 | Self::encode_num(*x as u16),
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Debug, PartialEq)]
+pub enum OpCode {
+    Nop = 0x0,
+    Push = 0x1,
+    PopReg = 0x2,
+    Signal = 0x0f,
+    AddStack = 0x10,
+    AddReg = 0x11,
+}
+
+impl OpCode {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "Nop" => Some(Self::Nop),
+            "Push" => Some(Self::Push),
+            "PopReg" => Some(Self::PopReg),
+            "Signal" => Some(Self::Signal),
+            "AddStack" => Some(Self::AddStack),
+            "AddReg" => Some(Self::AddReg),
+            _ => None,
+        }
+    }
+
+    pub fn from_u8(b: u8) -> Option<Self> {
+        match b {
+            x if x == Self::Nop as u8 => Some(Self::Nop),
+            x if x == Self::Push as u8 => Some(Self::Push),
+            x if x == Self::PopReg as u8 => Some(Self::PopReg),
+            x if x == Self::Signal as u8 => Some(Self::Signal),
+            x if x == Self::AddStack as u8 => Some(Self::AddStack),
+            x if x == Self::AddReg as u8 => Some(Self::AddReg),
+            _ => None,
+        }
     }
 }
 
@@ -55,31 +114,37 @@ fn parse_instruction_arg(ins: u16) -> u8 {
     ((ins & 0xff00) >> 8) as u8
 }
 
-fn parse_instruction(ins: u16) -> Result<Op, String> {
+fn parse_instruction(ins: u16) -> Result<Instruction, String> {
     let op = (ins & 0xff) as u8;
+    let opcode = OpCode::from_u8(op).ok_or(format!("Unknown op {:X}", op))?;
 
-    match op {
-        x if x == Op::Nop.value() => Ok(Op::Nop),
-        x if x == Op::Push(0).value() => {
+    match opcode {
+        OpCode::Nop => Ok(Instruction::Nop),
+        OpCode::Push => {
             let arg = parse_instruction_arg(ins);
-            Ok(Op::Push(arg))
+            Ok(Instruction::Push(arg))
         }
 
-        x if x == Op::PopReg(Register::A).value() => {
+        OpCode::PopReg => {
             let reg = (ins & 0xf00) >> 8;
             let reg = Register::from(reg as u8);
 
-            Ok(Op::PopReg(reg))
+            Ok(Instruction::PopReg(reg))
         }
 
-        x if x == Op::AddStack.value() => Ok(Op::AddStack),
+        OpCode::AddStack => Ok(Instruction::AddStack),
 
-        x if x == Op::Signal(0).value() => {
+        OpCode::AddReg => {
+            let r1 = Register::from(((ins & 0xf00) >> 8) as u8);
+            let r2 = Register::from(((ins & 0xf00) >> 12) as u8);
+
+            Ok(Instruction::AddReg(r1, r2))
+        }
+
+        OpCode::Signal => {
             let arg = parse_instruction_arg(ins);
-            Ok(Op::Signal(arg))
+            Ok(Instruction::Signal(arg))
         }
-
-        _ => Err(format!("Failed to parse instruction 0x{:X}", op)),
     }
 }
 
@@ -145,19 +210,19 @@ impl Machine {
         println!("{} | Got instruction {op:?}", pc);
 
         match op {
-            Op::Nop => Ok(()),
-            Op::Push(v) => {
+            Instruction::Nop => Ok(()),
+            Instruction::Push(v) => {
                 self.push(v)?;
                 Ok(())
             }
 
-            Op::PopReg(r) => {
+            Instruction::PopReg(r) => {
                 let popped = self.pop()?;
                 self.registers[r as usize] = popped;
                 Ok(())
             }
 
-            Op::AddStack => {
+            Instruction::AddStack => {
                 let a = self.pop()?;
                 let b = self.pop()?;
 
@@ -166,12 +231,12 @@ impl Machine {
                 Ok(())
             }
 
-            Op::AddReg(r1, r2) => {
+            Instruction::AddReg(r1, r2) => {
                 self.registers[r1 as usize] += self.registers[r2 as usize];
                 Ok(())
             }
 
-            Op::Signal(signal) => {
+            Instruction::Signal(signal) => {
                 self.signal_handlers
                     .get(&signal)
                     .ok_or(format!("Unknown signal 0x{:X}", signal))?(self)?;
