@@ -28,6 +28,14 @@ pub trait Addressable {
 
         Ok(())
     }
+
+    fn load(&mut self, from: &[u8], addr: u16) -> Result<(), MemoryError> {
+        for (i, byte) in from.iter().enumerate() {
+            self.write(addr + i as u16, *byte)?;
+        }
+
+        Ok(())
+    }
 }
 
 #[allow(dead_code)]
