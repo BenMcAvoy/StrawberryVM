@@ -71,7 +71,7 @@ impl LinearMemory {
 
 impl Addressable for LinearMemory {
     fn read(&self, addr: u16) -> Result<u8, MemoryError> {
-        if (addr as usize) > self.size {
+        if (addr as usize) >= self.size {
             return Err(MemoryError::OutOfBounds);
         }
 
