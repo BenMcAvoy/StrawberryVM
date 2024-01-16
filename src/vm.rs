@@ -17,19 +17,19 @@ pub enum Register {
 }
 
 impl From<u8> for Register {
-   fn from(value: u8) -> Self {
-       match value & 0b111 {
-           0 => Register::A,
-           1 => Register::B,
-           2 => Register::C,
-           3 => Register::M,
-           4 => Register::SP,
-           5 => Register::PC,
-           6 => Register::BP,
-           7 => Register::FL,
-           _ => unreachable!(),
-       }
-   }
+    fn from(value: u8) -> Self {
+        match value & 0b111 {
+            0 => Register::A,
+            1 => Register::B,
+            2 => Register::C,
+            3 => Register::M,
+            4 => Register::SP,
+            5 => Register::PC,
+            6 => Register::BP,
+            7 => Register::FL,
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[repr(u8)]
@@ -63,7 +63,7 @@ fn parse_instruction(ins: u16) -> Result<Op, String> {
             let reg = Register::from(reg as u8);
 
             Ok(Op::PopReg(reg))
-        },
+        }
 
         x if x == Op::AddStack.value() => Ok(Op::AddStack),
 
@@ -124,13 +124,13 @@ impl Machine {
             Op::Push(v) => {
                 self.push(v)?;
                 Ok(true)
-            },
+            }
 
             Op::PopReg(r) => {
                 let popped = self.pop()?;
                 self.registers[r as usize] = popped;
                 Ok(true)
-            },
+            }
 
             Op::AddStack => {
                 let a = self.pop()?;
