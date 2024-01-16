@@ -42,4 +42,39 @@ mod tests {
 
         assert_eq!(machine.get_register(Register::A), 18);
     }
+
+    #[test]
+    fn subsequent_addition() {
+        let mut machine = Machine::new();
+
+        machine.memory.write(0, 0x1).unwrap();
+        machine.memory.write(1, 10).unwrap();
+        machine.memory.write(2, 0x1).unwrap();
+        machine.memory.write(3, 8).unwrap();
+        machine.memory.write(4, 0x3).unwrap();
+        machine.memory.write(6, 0x2).unwrap();
+        machine.memory.write(7, 0).unwrap();
+
+        machine.step().unwrap(); // PUSH 10
+        machine.step().unwrap(); // PUSH 8
+        machine.step().unwrap(); // ADDSTACK
+        machine.step().unwrap(); // POPREGISTER A
+
+        assert_eq!(machine.get_register(Register::A), 18);
+
+        machine.memory.write(8, 0x1).unwrap();
+        machine.memory.write(9, 11).unwrap();
+        machine.memory.write(10, 0x1).unwrap();
+        machine.memory.write(11, 3).unwrap();
+        machine.memory.write(12, 0x3).unwrap();
+        machine.memory.write(14, 0x2).unwrap();
+        machine.memory.write(15, 0).unwrap();
+
+        machine.step().unwrap(); // PUSH 11
+        machine.step().unwrap(); // PUSH 3
+        machine.step().unwrap(); // ADDSTACK
+        machine.step().unwrap(); // POPREGISTER A
+
+        assert_eq!(machine.get_register(Register::A), 14);
+    }
 }
