@@ -1,6 +1,6 @@
+pub mod macros;
 mod memory;
 pub mod vm;
-pub mod macros;
 
 #[cfg(test)]
 mod tests {
