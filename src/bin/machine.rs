@@ -1,6 +1,9 @@
-use std::{env, fs::File, io::Read, path::Path};
-
 use strawberryvm::vm::{Machine, Register};
+
+use std::env;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
 
 fn sig_hault(vm: &mut Machine) -> Result<(), String> {
     vm.machine_halted = true;
