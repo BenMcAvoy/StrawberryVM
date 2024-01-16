@@ -11,7 +11,7 @@ fn sig_hault(vm: &mut Machine) -> Result<(), String> {
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn load_program() -> Vec<u8> {
     let args: Vec<String> = env::args().collect();
     assert!(args.len() >= 2);
 
@@ -21,13 +21,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let mut program: Vec<u8> = Vec::new();
-    file.read_to_end(&mut program)?;
+    file.read_to_end(&mut program).unwrap();
 
+    program
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut vm = Machine::new();
 
     vm.define_handler(0x90, sig_hault);
+    vm.memory.load(&load_program(), 0)?;
 
-    vm.memory.load(&program, 0)?;
     while !vm.machine_halted {
         vm.step()?;
     }
