@@ -192,7 +192,11 @@ impl Machine {
     }
 
     pub fn pop(&mut self) -> Result<u16, Box<dyn std::error::Error>> {
-        let sp = self.registers[Register::SP as usize] - 2;
+        let sp = match self.registers[Register::SP as usize].checked_sub(2) {
+            Some(result) => result,
+            None => return Err("Stack pointer went back too far".into()),
+        };
+
         self.registers[Register::SP as usize] -= 2;
 
         self.memory
@@ -207,7 +211,7 @@ impl Machine {
         let instruction = self.memory.read_u16(pc)?;
         let op = parse_instruction(instruction)?;
 
-        println!("{} | Got instruction {op:?}", pc);
+        // println!("{} | Got instruction {op:?}", pc);
 
         match op {
             Instruction::Nop => Ok(()),
