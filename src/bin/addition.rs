@@ -1,5 +1,4 @@
-use strawberryvm::vm::{Machine, Register};
-use strawberryvm::write_memory;
+use strawberryvm::prelude::*;
 
 fn sig_halt(vm: &mut Machine) -> Result<(), String> {
     vm.machine_halted = true;

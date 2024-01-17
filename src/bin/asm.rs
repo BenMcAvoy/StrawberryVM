@@ -1,11 +1,11 @@
+use strawberryvm::prelude::*;
+
 use std::env;
 use std::path::Path;
 
 use std::fs::read_to_string;
 use std::io::stdout;
 use std::io::Write;
-
-use strawberryvm::vm::{Instruction, OpCode, Register};
 
 fn parse_numeric(s: &str) -> Result<u8, Box<dyn std::error::Error>> {
     let first = s.chars().next().unwrap();

@@ -1,4 +1,4 @@
-use strawberryvm::vm::{Machine, Register};
+use strawberryvm::prelude::*;
 
 use std::env;
 use std::fs::File;

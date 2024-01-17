@@ -1,11 +1,23 @@
-pub mod macros;
+mod macros;
+mod op;
+mod register;
+mod vm;
+
 mod memory;
-pub mod vm;
+
+pub mod prelude {
+    pub use crate::write_memory;
+
+    pub use crate::op::*;
+    pub use crate::register::*;
+    pub use crate::vm::*;
+}
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        vm::{Machine, Register, MEMORY_KILO_BYTES},
+        register::Register,
+        vm::{Machine, MEMORY_KILO_BYTES},
         write_memory,
     };
 
