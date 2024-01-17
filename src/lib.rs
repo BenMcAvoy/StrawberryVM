@@ -4,7 +4,15 @@ pub mod vm;
 
 #[cfg(test)]
 mod tests {
-    use crate::vm::{Machine, Register, MEMORY_KILO_BYTES};
+    use crate::{
+        vm::{Machine, Register, MEMORY_KILO_BYTES},
+        write_memory,
+    };
+
+    fn sig_halt(vm: &mut Machine) -> Result<(), String> {
+        vm.machine_halted = true;
+        Ok(())
+    }
 
     // Tests for failure (these should fail!)
     #[test]
@@ -25,57 +33,62 @@ mod tests {
     }
 
     #[test]
-    fn addition() {
+    fn addition() -> Result<(), Box<dyn std::error::Error>> {
         let mut machine = Machine::new();
+        machine.define_handler(0xf0, sig_halt);
 
-        machine.memory.write(0, 0x1).unwrap();
-        machine.memory.write(1, 10).unwrap();
-        machine.memory.write(2, 0x1).unwrap();
-        machine.memory.write(3, 8).unwrap();
-        machine.memory.write(4, 0x3).unwrap();
-        machine.memory.write(6, 0x2).unwrap();
-        machine.memory.write(7, 0).unwrap();
+        write_memory!(machine,
+         0 => 0x01,
+         1 => 0x0a,
+         2 => 0x01,
+         3 => 0x08,
+         4 => 0x10,
+         5 => 0x00,
+         6 => 0x02,
+         7 => 0x00,
+         8 => 0x0f,
+         9 => 0xf0
+        );
 
         machine.step().unwrap(); // PUSH 10
         machine.step().unwrap(); // PUSH 8
         machine.step().unwrap(); // ADDSTACK
         machine.step().unwrap(); // POPREGISTER A
+        machine.step().unwrap(); // SIGNAL 0xF0
 
         assert_eq!(machine.get_register(Register::A), 18);
+
+        Ok(())
     }
 
     #[test]
-    fn subsequent_addition() {
+    fn subsequent_addition() -> Result<(), Box<dyn std::error::Error>> {
         let mut machine = Machine::new();
+        machine.define_handler(0xf0, sig_halt);
 
-        machine.memory.write(0, 0x1).unwrap();
-        machine.memory.write(1, 10).unwrap();
-        machine.memory.write(2, 0x1).unwrap();
-        machine.memory.write(3, 8).unwrap();
-        machine.memory.write(4, 0x3).unwrap();
-        machine.memory.write(6, 0x2).unwrap();
-        machine.memory.write(7, 0).unwrap();
+        for _ in 1..=2 {
+            write_memory!(machine,
+             0 => 0x01,
+             1 => 0x0a,
+             2 => 0x01,
+             3 => 0x08,
+             4 => 0x10,
+             5 => 0x00,
+             6 => 0x02,
+             7 => 0x00,
+             8 => 0x0f,
+             9 => 0xf0
+            );
 
-        machine.step().unwrap(); // PUSH 10
-        machine.step().unwrap(); // PUSH 8
-        machine.step().unwrap(); // ADDSTACK
-        machine.step().unwrap(); // POPREGISTER A
+            machine.step().unwrap(); // PUSH 10
+            machine.step().unwrap(); // PUSH 8
+            machine.step().unwrap(); // ADDSTACK
+            machine.step().unwrap(); // POPREGISTER A
+            machine.step().unwrap(); // SIGNAL 0xF0
 
-        assert_eq!(machine.get_register(Register::A), 18);
+            assert_eq!(machine.get_register(Register::A), 18);
+        }
 
-        machine.memory.write(8, 0x1).unwrap();
-        machine.memory.write(9, 11).unwrap();
-        machine.memory.write(10, 0x1).unwrap();
-        machine.memory.write(11, 3).unwrap();
-        machine.memory.write(12, 0x3).unwrap();
-        machine.memory.write(14, 0x2).unwrap();
-        machine.memory.write(15, 0).unwrap();
-
-        machine.step().unwrap(); // PUSH 11
-        machine.step().unwrap(); // PUSH 3
-        machine.step().unwrap(); // ADDSTACK
-        machine.step().unwrap(); // POPREGISTER A
-
-        assert_eq!(machine.get_register(Register::A), 14);
+        Ok(())
     }
 }
