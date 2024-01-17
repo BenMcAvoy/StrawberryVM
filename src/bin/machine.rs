@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-fn sig_hault(vm: &mut Machine) -> Result<(), String> {
+fn sig_halt(vm: &mut Machine) -> Result<(), String> {
     vm.machine_halted = true;
     Ok(())
 }
@@ -45,7 +45,7 @@ fn load_program() -> Vec<u8> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut vm = Machine::new();
 
-    vm.define_handler(0xF0, sig_hault);
+    vm.define_handler(0xF0, sig_halt);
     vm.define_handler(0xF1, log_reg_a);
     vm.define_handler(0xF2, log_regs);
 

@@ -1,7 +1,7 @@
 use strawberryvm::vm::{Machine, Register};
 use strawberryvm::write_memory;
 
-fn sig_hault(vm: &mut Machine) -> Result<(), String> {
+fn sig_halt(vm: &mut Machine) -> Result<(), String> {
     vm.machine_halted = true;
 
     Ok(())
@@ -10,7 +10,7 @@ fn sig_hault(vm: &mut Machine) -> Result<(), String> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut vm = Machine::new();
 
-    vm.define_handler(0x90, sig_hault);
+    vm.define_handler(0x90, sig_halt);
 
     write_memory!(vm,
         0 => 0x1,
