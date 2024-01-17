@@ -30,6 +30,13 @@ fn parse_instruction(ins: u16) -> Result<Instruction, String> {
             Ok(Instruction::PopReg(reg))
         }
 
+        OpCode::PushReg => {
+            let reg = (ins & 0xf00) >> 8;
+            let reg = Register::from(reg as u8);
+
+            Ok(Instruction::PushReg(reg))
+        }
+
         OpCode::AddStack => Ok(Instruction::AddStack),
 
         OpCode::AddReg => {
@@ -74,6 +81,38 @@ impl Machine {
         }
     }
 
+    pub fn status(&self) -> String {
+        let width = 4;
+
+        let (a, b, c, m) = (
+            self.get_register(Register::A),
+            self.get_register(Register::B),
+            self.get_register(Register::C),
+            self.get_register(Register::M),
+        );
+
+        let (sp, pc, bp) = (
+            self.get_register(Register::SP),
+            self.get_register(Register::PC),
+            self.get_register(Register::BP),
+        );
+
+        let flags = self.get_register(Register::FL);
+
+        let line_width = (width + 3) * 8;
+        let lines = vec![
+            String::from(""),
+            format!("   {:^line_width$}", "» Registers «"),
+            format!(" ┌{:─<line_width$}┐",""),
+            format!(" │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │", "A", "B", "C", "M", "SP", "PC", "BP", "FLAGS"),
+            format!(" │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^5} │", a, b, c, m, sp, pc, bp, flags),
+            format!(" └{:─<line_width$}┘", ""),
+            String::from(""),
+        ];
+
+        lines.join("\n")
+    }
+
     pub fn get_register(&self, r: Register) -> u16 {
         self.registers[r as usize]
     }
@@ -82,9 +121,9 @@ impl Machine {
         self.signal_handlers.insert(id, handler);
     }
 
-    pub fn push(&mut self, v: u8) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn push(&mut self, v: u16) -> Result<(), Box<dyn std::error::Error>> {
         let sp = self.registers[Register::SP as usize];
-        self.memory.write_u16(sp, v as u16)?;
+        self.memory.write_u16(sp, v)?;
         self.registers[Register::SP as usize] += 2;
         Ok(())
     }
@@ -109,12 +148,12 @@ impl Machine {
         let instruction = self.memory.read_u16(pc)?;
         let op = parse_instruction(instruction)?;
 
-        // println!("{} | Got instruction {op:?}", pc);
+        println!("{} | Got instruction {op:?}", pc);
 
         match op {
             Instruction::Nop => Ok(()),
             Instruction::Push(v) => {
-                self.push(v)?;
+                self.push(v as u16)?;
                 Ok(())
             }
 
@@ -124,11 +163,16 @@ impl Machine {
                 Ok(())
             }
 
+            Instruction::PushReg(r) => {
+                self.push(self.registers[r as usize])?;
+                Ok(())
+            }
+
             Instruction::AddStack => {
                 let a = self.pop()?;
                 let b = self.pop()?;
 
-                self.push((a + b) as u8)?;
+                self.push(a + b)?;
 
                 Ok(())
             }
