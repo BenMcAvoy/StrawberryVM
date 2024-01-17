@@ -16,14 +16,7 @@ fn log_reg_a(vm: &mut Machine) -> Result<(), String> {
 }
 
 fn log_regs(vm: &mut Machine) -> Result<(), String> {
-    println!(" A = {}", vm.get_register(Register::A));
-    println!(" B = {}", vm.get_register(Register::B));
-    println!(" C = {}", vm.get_register(Register::C));
-    println!(" M = {}", vm.get_register(Register::M));
-    println!("SP = {}", vm.get_register(Register::SP));
-    println!("PC = {}", vm.get_register(Register::PC));
-    println!("BP = {}", vm.get_register(Register::BP));
-    println!("FL = {}", vm.get_register(Register::FL));
+    println!("{}", vm.status());
     Ok(())
 }
 
