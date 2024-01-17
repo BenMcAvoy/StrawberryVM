@@ -2,9 +2,15 @@
 
 ; Push values onto stack
 Push 10
-Push 240
+Push 11
 
 ; Add and store in A
+AddStack
+PopReg A
+
+; Experimental
+PushReg A
+PushReg A
 AddStack
 PopReg A
 
