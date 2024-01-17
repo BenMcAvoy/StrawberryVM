@@ -74,8 +74,6 @@ fn handle_line(parts: Vec<&str>) -> Result<Instruction, Box<dyn std::error::Erro
             assert_length(&parts, 1)?;
             Ok(Instruction::Nop)
         }
-
-        _ => Err(format!("Unimplemented opcode: {}", parts[0]).into()),
     }
 }
 
