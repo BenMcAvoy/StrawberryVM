@@ -9,7 +9,7 @@ pub trait Addressable {
             }
         };
 
-        Err(MemoryError::OutOfBounds)
+        Err(MemoryError::OutOfBounds(addr))
     }
 
     fn write_u16(&mut self, addr: u16, value: u16) -> Result<(), MemoryError> {
@@ -41,14 +41,14 @@ pub trait Addressable {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum MemoryError {
-    OutOfBounds,
+    OutOfBounds(u16),
     OtherError,
 }
 
 impl std::fmt::Display for MemoryError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            MemoryError::OutOfBounds => write!(f, "OutOfBounds error occurred"),
+            MemoryError::OutOfBounds(v) => write!(f, "OutOfBounds error occurred @ 0x{:X}", v),
             MemoryError::OtherError => write!(f, "Another error occurred"),
         }
     }
@@ -57,7 +57,7 @@ impl std::fmt::Display for MemoryError {
 impl std::error::Error for MemoryError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            MemoryError::OutOfBounds => None,
+            MemoryError::OutOfBounds(_) => None,
             MemoryError::OtherError => None,
         }
     }
@@ -80,7 +80,7 @@ impl LinearMemory {
 impl Addressable for LinearMemory {
     fn read(&self, addr: u16) -> Result<u8, MemoryError> {
         if (addr as usize) >= self.size {
-            return Err(MemoryError::OutOfBounds);
+            return Err(MemoryError::OutOfBounds(addr));
         }
 
         Ok(self.bytes[addr as usize])
@@ -88,7 +88,7 @@ impl Addressable for LinearMemory {
 
     fn write(&mut self, addr: u16, value: u8) -> Result<(), MemoryError> {
         if (addr as usize) > self.size {
-            return Err(MemoryError::OutOfBounds);
+            return Err(MemoryError::OutOfBounds(addr));
         }
 
         self.bytes[addr as usize] = value;

@@ -50,9 +50,19 @@ fn handle_line(parts: Vec<&str>) -> Result<Instruction, Box<dyn std::error::Erro
             Ok(Instruction::AddStack)
         }
 
+        OpCode::AddReg => {
+            let (r1, r2) = (parse_register(parts[1])?, parse_register(parts[2])?);
+            Ok(Instruction::AddReg(r1, r2))
+        }
+
         OpCode::PopReg => {
             assert_length(&parts, 2)?;
             Ok(Instruction::PopReg(parse_register(parts[1])?))
+        }
+
+        OpCode::PushReg => {
+            assert_length(&parts, 2)?;
+            Ok(Instruction::PushReg(parse_register(parts[1])?))
         }
 
         OpCode::Signal => {
