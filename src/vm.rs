@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use crate::memory::Addressable;
 use crate::memory::LinearMemory;
@@ -84,19 +85,23 @@ pub enum OpCode {
     AddReg = 0x11,
 }
 
-impl OpCode {
-    pub fn from_str(s: &str) -> Option<Self> {
+impl FromStr for OpCode {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Nop" => Some(Self::Nop),
-            "Push" => Some(Self::Push),
-            "PopReg" => Some(Self::PopReg),
-            "Signal" => Some(Self::Signal),
-            "AddStack" => Some(Self::AddStack),
-            "AddReg" => Some(Self::AddReg),
-            _ => None,
+            "Nop" => Ok(Self::Nop),
+            "Push" => Ok(Self::Push),
+            "PopReg" => Ok(Self::PopReg),
+            "Signal" => Ok(Self::Signal),
+            "AddStack" => Ok(Self::AddStack),
+            "AddReg" => Ok(Self::AddReg),
+            _ => Err(()),
         }
     }
+}
 
+impl OpCode {
     pub fn from_u8(b: u8) -> Option<Self> {
         match b {
             x if x == Self::Nop as u8 => Some(Self::Nop),

@@ -1,10 +1,11 @@
+use std::env;
 use std::path::Path;
-use std::{env, io::stdout, io::Write};
 
 use std::fs::read_to_string;
+use std::io::stdout;
+use std::io::Write;
 
-use strawberryvm::vm::{OpCode, Instruction, Register};
-// use std::io::{stdout, Write};
+use strawberryvm::vm::{Instruction, OpCode, Register};
 
 fn parse_numeric(s: &str) -> Result<u8, Box<dyn std::error::Error>> {
     Ok(s.parse::<u8>()?)
@@ -27,7 +28,9 @@ fn assert_length(parts: &Vec<&str>, n: usize) -> Result<(), Box<dyn std::error::
 }
 
 fn handle_line(parts: Vec<&str>) -> Result<Instruction, Box<dyn std::error::Error>> {
-    let opcode = OpCode::from_str(parts[0]).ok_or(format!("Unknown opcode: {}", parts[0]))?;
+    let opcode = parts[0]
+        .parse()
+        .map_err(|_| format!("Unknown opcode: {}", parts[0]))?;
 
     match opcode {
         OpCode::Push => {
@@ -50,6 +53,11 @@ fn handle_line(parts: Vec<&str>) -> Result<Instruction, Box<dyn std::error::Erro
             Ok(Instruction::Signal(parse_numeric(parts[1])?))
         }
 
+        OpCode::Nop => {
+            assert_length(&parts, 1)?;
+            Ok(Instruction::Nop)
+        }
+
         _ => Err(format!("Unimplemented opcode: {}", parts[0]).into()),
     }
 }
@@ -65,11 +73,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut output: Vec<u8> = Vec::new();
 
-    for line in file.lines().filter(|line| !line.is_empty() && !line.starts_with(';')) {
-        let parts: Vec<&str> = line
-            .split(' ')
-            .filter(|x| !x.is_empty())
-            .collect();
+    for line in file
+        .lines()
+        .filter(|line| !line.is_empty() && !line.starts_with(';'))
+    {
+        let parts: Vec<&str> = line.split(' ').filter(|x| !x.is_empty()).collect();
 
         if parts.is_empty() {
             continue;
