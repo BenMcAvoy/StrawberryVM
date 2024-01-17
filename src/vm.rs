@@ -148,7 +148,7 @@ impl Machine {
         let instruction = self.memory.read_u16(pc)?;
         let op = parse_instruction(instruction)?;
 
-        println!("{} | Got instruction {op:?}", pc);
+        println!("{:0>4} │ Got instruction {op:?}", pc);
 
         match op {
             Instruction::Nop => Ok(()),
