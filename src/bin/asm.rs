@@ -8,7 +8,14 @@ use std::io::Write;
 use strawberryvm::vm::{Instruction, OpCode, Register};
 
 fn parse_numeric(s: &str) -> Result<u8, Box<dyn std::error::Error>> {
-    Ok(s.parse::<u8>()?)
+    let first = s.chars().next().unwrap();
+    let (num, radix) = match first {
+        '$' => (&s[1..], 16),
+        '%' => (&s[1..], 2),
+        _ => (s, 10),
+    };
+
+    Ok(u8::from_str_radix(num, radix)?)
 }
 
 fn parse_register(s: &str) -> Result<Register, Box<dyn std::error::Error>> {

@@ -9,7 +9,7 @@ AddStack
 PopReg A
 
 ; Print A
-Signal 241
+Signal $f1
 
 ; Quit
-Signal 240
+Signal $f0
