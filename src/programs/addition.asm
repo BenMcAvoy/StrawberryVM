@@ -8,8 +8,8 @@ Push 240
 AddStack
 PopReg A
 
-; Print A
-Signal $f1
+; Print registers
+Signal $f2
 
 ; Quit
 Signal $f0
