@@ -42,6 +42,55 @@ impl Instruction {
     }
 }
 
+fn parse_instruction_arg(ins: u16) -> u8 {
+    ((ins & 0xff00) >> 8) as u8
+}
+
+impl TryFrom<u16> for Instruction {
+    type Error = String;
+
+    fn try_from(ins: u16) -> Result<Self, Self::Error> {
+        let op = (ins & 0xff) as u8;
+        let opcode = OpCode::try_from(op)?;
+
+        match opcode {
+            OpCode::Nop => Ok(Instruction::Nop),
+            OpCode::Push => {
+                let arg = parse_instruction_arg(ins);
+                Ok(Instruction::Push(arg))
+            }
+
+            OpCode::PopReg => {
+                let reg = (ins & 0xf00) >> 8;
+                let reg = Register::from(reg as u8);
+
+                Ok(Instruction::PopReg(reg))
+            }
+
+            OpCode::PushReg => {
+                let reg = (ins & 0xf00) >> 8;
+                let reg = Register::from(reg as u8);
+
+                Ok(Instruction::PushReg(reg))
+            }
+
+            OpCode::AddStack => Ok(Instruction::AddStack),
+
+            OpCode::AddReg => {
+                let r1 = Register::from(((ins & 0xf00) >> 8) as u8);
+                let r2 = Register::from(((ins & 0xf00) >> 12) as u8);
+
+                Ok(Instruction::AddReg(r1, r2))
+            }
+
+            OpCode::Signal => {
+                let arg = parse_instruction_arg(ins);
+                Ok(Instruction::Signal(arg))
+            }
+        }
+    }
+}
+
 #[repr(u8)]
 #[derive(Debug, PartialEq)]
 pub enum OpCode {
@@ -55,7 +104,7 @@ pub enum OpCode {
 }
 
 impl FromStr for OpCode {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -66,22 +115,24 @@ impl FromStr for OpCode {
             "Signal" => Ok(Self::Signal),
             "AddStack" => Ok(Self::AddStack),
             "AddReg" => Ok(Self::AddReg),
-            _ => Err(()),
+            _ => Err(format!("Unknown opcode {s}")),
         }
     }
 }
 
-impl OpCode {
-    pub fn from_u8(b: u8) -> Option<Self> {
-        match b {
-            x if x == Self::Nop as u8 => Some(Self::Nop),
-            x if x == Self::Push as u8 => Some(Self::Push),
-            x if x == Self::PopReg as u8 => Some(Self::PopReg),
-            x if x == Self::PushReg as u8 => Some(Self::PushReg),
-            x if x == Self::Signal as u8 => Some(Self::Signal),
-            x if x == Self::AddStack as u8 => Some(Self::AddStack),
-            x if x == Self::AddReg as u8 => Some(Self::AddReg),
-            _ => None,
+impl TryFrom<u8> for OpCode {
+    type Error = String;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            x if x == Self::Nop as u8 => Ok(Self::Nop),
+            x if x == Self::Push as u8 => Ok(Self::Push),
+            x if x == Self::PopReg as u8 => Ok(Self::PopReg),
+            x if x == Self::PushReg as u8 => Ok(Self::PushReg),
+            x if x == Self::Signal as u8 => Ok(Self::Signal),
+            x if x == Self::AddStack as u8 => Ok(Self::AddStack),
+            x if x == Self::AddReg as u8 => Ok(Self::AddReg),
+            _ => Err(format!("Unknown opcode {value:X}")),
         }
     }
 }
