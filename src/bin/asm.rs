@@ -34,6 +34,7 @@ fn assert_length(parts: &Vec<&str>, n: usize) -> Result<(), Box<dyn std::error::
     }
 }
 
+// TODO: Very good candidate for derive macro.
 fn handle_line(parts: Vec<&str>) -> Result<Instruction, Box<dyn std::error::Error>> {
     let opcode = parts[0]
         .parse()
