@@ -1,4 +1,7 @@
 use proc_macro::TokenStream;
+use syn::parse_macro_input;
+use syn::DeriveInput;
+
 use quote::quote;
 use syn::{ItemEnum, LitInt};
 
@@ -17,7 +20,7 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
             }
         }
 
-        syn::parse(quote!{0}.into()).unwrap()
+        syn::parse(quote! {0}.into()).unwrap()
     });
 
     quote! {
@@ -50,5 +53,33 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
             }
         }
 
-    }.into()
+    }
+    .into()
+}
+
+#[proc_macro_derive(FromU8)]
+pub fn derive_from_u8(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = input.ident;
+    let variants = if let syn::Data::Enum(data) = input.data {
+        data.variants
+    } else {
+        panic!("FromU8 can only be derived for enums");
+    };
+
+    let variant_names: Vec<_> = variants.iter().map(|v| &v.ident).collect();
+    let variant_values: Vec<_> = variants.iter().enumerate().map(|(i, _)| i as u8).collect();
+
+    let expanded = quote! {
+        impl From<u8> for #name {
+            fn from(item: u8) -> Self {
+                match item {
+                  #(#variant_values => #name::#variant_names,)*
+                  _ => panic!("Invalid value"),
+                }
+            }
+        }
+    };
+
+    proc_macro::TokenStream::from(expanded)
 }
