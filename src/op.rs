@@ -1,14 +1,23 @@
 use crate::register::Register;
 use std::str::FromStr;
 
-#[derive(Debug)]
+use macros::VmInstruction;
+
+#[derive(Debug, VmInstruction)]
 pub enum Instruction {
+    #[opcode(0x0)]
     Nop,
+    #[opcode(0x1)]
     Push(u8),
+    #[opcode(0x2)]
     PopReg(Register),
+    #[opcode(0x3)]
     AddStack,
+    #[opcode(0x20)]
     AddReg(Register, Register),
+    #[opcode(0x21)]
     PushReg(Register),
+    #[opcode(0xF0)]
     Signal(u8),
 }
 
@@ -87,52 +96,6 @@ impl TryFrom<u16> for Instruction {
                 let arg = parse_instruction_arg(ins);
                 Ok(Instruction::Signal(arg))
             }
-        }
-    }
-}
-
-#[repr(u8)]
-#[derive(Debug, PartialEq)]
-pub enum OpCode {
-    Nop = 0x0,
-    Push = 0x1,
-    PopReg = 0x2,
-    PushReg = 0x3,
-    Signal = 0x0f,
-    AddStack = 0x10,
-    AddReg = 0x11,
-}
-
-impl FromStr for OpCode {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Nop" => Ok(Self::Nop),
-            "Push" => Ok(Self::Push),
-            "PopReg" => Ok(Self::PopReg),
-            "PushReg" => Ok(Self::PushReg),
-            "Signal" => Ok(Self::Signal),
-            "AddStack" => Ok(Self::AddStack),
-            "AddReg" => Ok(Self::AddReg),
-            _ => Err(format!("Unknown opcode {s}")),
-        }
-    }
-}
-
-impl TryFrom<u8> for OpCode {
-    type Error = String;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            x if x == Self::Nop as u8 => Ok(Self::Nop),
-            x if x == Self::Push as u8 => Ok(Self::Push),
-            x if x == Self::PopReg as u8 => Ok(Self::PopReg),
-            x if x == Self::PushReg as u8 => Ok(Self::PushReg),
-            x if x == Self::Signal as u8 => Ok(Self::Signal),
-            x if x == Self::AddStack as u8 => Ok(Self::AddStack),
-            x if x == Self::AddReg as u8 => Ok(Self::AddReg),
-            _ => Err(format!("Unknown opcode {value:X}")),
         }
     }
 }
