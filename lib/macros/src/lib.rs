@@ -23,6 +23,11 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
         syn::parse(quote! {0}.into()).unwrap()
     });
 
+    let match_fields: Vec<_> = field_names
+        .iter()
+        .map(|f| f.to_string().to_lowercase())
+        .collect();
+
     quote! {
         #[repr(u8)]
         #[derive(Debug)]
@@ -34,8 +39,11 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
             type Err = String;
 
             fn from_str(s: &str) -> Result<Self, Self::Err> {
+                let s = s.to_lowercase();
+                let s = s.as_str();
+
                 match s {
-                    #(stringify!(#field_names) => Ok(Self::#field_names),)*
+                    #(#match_fields => Ok(Self::#field_names),)*
                     _ => Err(format!("Unknown opcode {s}")),
                 }
             }
@@ -48,7 +56,7 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
                 match value {
                     #(x if x == Self::#field_names as u8 => Ok(Self::#field_names),)*
                     // x if x == Self::AddReg as u8 => Ok(Self::AddReg),
-                    _ => Err(format!("Unknown opcode {value:X}")),
+                    _ => Err(format!("Unknown opcode 0x{value:X}")),
                 }
             }
         }
