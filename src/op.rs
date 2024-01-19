@@ -12,14 +12,36 @@ pub enum Instruction {
     #[opcode(0x2)]
     PopReg(Register),
     #[opcode(0x3)]
-    AddStack,
-    #[opcode(0x20)]
-    AddReg(Register, Register),
-    #[opcode(0x21)]
     PushReg(Register),
-    #[opcode(0xF0)]
+    #[opcode(0x4)]
+    AddStack,
+    #[opcode(0x5)]
+    AddReg(Register, Register),
+    #[opcode(0x6)]
     Signal(u8),
+    #[opcode(0x7)]
+    Jmp(u8),
 }
+
+// #[derive(Debug, VmInstruction)]
+// pub enum Instruction {
+//     #[opcode(0x0)]
+//     Nop,
+//     #[opcode(0x1)]
+//     Push(u8),
+//     #[opcode(0x2)]
+//     PopReg(Register),
+//     #[opcode(0x3)]
+//     AddStack,
+//     #[opcode(0x4)]
+//     AddReg(Register, Register),
+//     #[opcode(0x5)]
+//     PushReg(Register),
+//     #[opcode(0x6)]
+//     Signal(u8),
+//     #[opcode(0x7)]
+//     Jmp(u8),
+// }
 
 impl Instruction {
     fn encode_r1(r: Register) -> u16 {
@@ -47,6 +69,7 @@ impl Instruction {
             Self::AddStack => OpCode::AddStack as u16,
             Self::AddReg(r1, r2) => OpCode::AddReg as u16 | Self::encode_rs(*r1, *r2),
             Self::Signal(x) => OpCode::Signal as u16 | Self::encode_num(*x as u16),
+            Self::Jmp(r) => OpCode::Jmp as u16 | Self::encode_num(*r as u16),
         }
     }
 }
@@ -95,6 +118,11 @@ impl TryFrom<u16> for Instruction {
             OpCode::Signal => {
                 let arg = parse_instruction_arg(ins);
                 Ok(Instruction::Signal(arg))
+            }
+
+            OpCode::Jmp => {
+                let reg = parse_instruction_arg(ins);
+                Ok(Instruction::Jmp(reg))
             }
         }
     }

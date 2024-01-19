@@ -23,7 +23,7 @@ fn parse_register(s: &str) -> Result<Register, Box<dyn std::error::Error>> {
         "A" => Ok(Register::A),
         "B" => Ok(Register::B),
         "C" => Ok(Register::C),
-        _ => Err("Unknown register".into()),
+        _ => Err(format!("Unknown register {s}").into()),
     }
 }
 
@@ -75,6 +75,11 @@ fn handle_line(parts: Vec<&str>) -> Result<Instruction, Box<dyn std::error::Erro
             assert_length(&parts, 1)?;
             Ok(Instruction::Nop)
         }
+
+        OpCode::Jmp => {
+            assert_length(&parts, 2)?;
+            Ok(Instruction::Jmp(parse_numeric(parts[1])?))
+        }
     }
 }
 
@@ -86,12 +91,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert!(args.len() == 2);
 
     let file = read_to_string(Path::new(&args[1]))?;
+    let lines: Vec<&str> = file.lines().collect();
 
     let mut output: Vec<u8> = Vec::new();
 
-    for line in file
-        .lines()
-        .filter(|line| !line.is_empty() && !line.starts_with(';'))
+    for line in lines.iter().filter(|line| line.ends_with(':')) {
+        dbg!(line);
+    }
+
+    for line in lines
+        .iter()
+        .filter(|line| !line.is_empty())
+        .filter(|line| !line.starts_with(';'))
+        .filter(|line| !line.ends_with(':'))
     {
         let parts: Vec<&str> = line.split(' ').filter(|x| !x.is_empty()).collect();
 

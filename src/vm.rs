@@ -99,7 +99,7 @@ impl Machine {
 
     pub fn step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let pc = self.registers[Register::PC as usize];
-        self.registers[Register::PC as usize] = pc + 2;
+        self.registers[Register::PC as usize] += 2;
         let instruction = self.memory.read_u16(pc)?;
         let op = Instruction::try_from(instruction)?;
 
@@ -107,10 +107,7 @@ impl Machine {
 
         match op {
             Instruction::Nop => Ok(()),
-            Instruction::Push(v) => {
-                self.push(v as u16)?;
-                Ok(())
-            }
+            Instruction::Push(v) => self.push(v as u16),
 
             Instruction::PopReg(r) => {
                 let popped = self.pop()?;
@@ -118,18 +115,13 @@ impl Machine {
                 Ok(())
             }
 
-            Instruction::PushReg(r) => {
-                self.push(self.registers[r as usize])?;
-                Ok(())
-            }
+            Instruction::PushReg(r) => self.push(self.registers[r as usize]),
 
             Instruction::AddStack => {
                 let a = self.pop()?;
                 let b = self.pop()?;
 
-                self.push(a + b)?;
-
-                Ok(())
+                self.push(a + b)
             }
 
             Instruction::AddReg(r1, r2) => {
@@ -142,6 +134,11 @@ impl Machine {
                     .get(&signal)
                     .ok_or(format!("Unknown signal 0x{:X}", signal))?(self)?;
 
+                Ok(())
+            }
+
+            Instruction::Jmp(reg) => {
+                self.registers[Register::PC as usize] = reg as u16;
                 Ok(())
             }
         }
