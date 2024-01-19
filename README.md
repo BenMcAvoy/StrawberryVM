@@ -23,6 +23,11 @@ A fantasy virtual machine with limits on resources.
 | Signal        | u8 (signal value)               | Sends a signal with an 8-bit value.                                                 |
 | Jump          | u8 (target address)             | Jumps to the specified address in the program.                                      |
 
+## Reserved symbols
+| Symbol | Use               |
+| $      | Hexadecimal value |
+| %      | Binary value      |
+| ^      | Label value       |
 
 ## Credits
 This project is following along with the live streams by [TomMarksTalksCode](https://www.youtube.com/@TomMarksTalksCode) and this project would not have been possible without him. He can also be found on [GitHub](https://github.com/phy1um) and on his [website](https://coding.tommarks.xyz/).
