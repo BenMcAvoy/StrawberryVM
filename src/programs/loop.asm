@@ -2,7 +2,7 @@ push 2
 push 2
 
 print:
-  signal $F1
+  signal $F2
 
 jmp ^print
 
