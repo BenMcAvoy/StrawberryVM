@@ -25,6 +25,7 @@ A fantasy virtual machine with limits on resources.
 
 ## Reserved symbols
 | Symbol | Use               |
+|--------|-------------------|
 | $      | Hexadecimal value |
 | %      | Binary value      |
 | ^      | Label value       |
