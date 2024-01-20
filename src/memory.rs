@@ -86,7 +86,7 @@ impl Addressable for Linear {
     }
 
     fn write(&mut self, addr: u16, value: u8) -> Result<(), Error> {
-        if (addr as usize) > self.size {
+        if (addr as usize) >= self.size {
             return Err(Error::OutOfBounds(addr));
         }
 
