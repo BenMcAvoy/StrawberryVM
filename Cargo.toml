@@ -1,10 +1,19 @@
-workspace = { members = ["lib/macros"] }
 [package]
 name = "strawberryvm"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
+[dependencies.macros]
+path = "lib/macros"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = "deny"
+pedantic = "deny"
+# nursery = "deny"     - Future
+# unwrap_used = "deny" - Future
 
 [[bin]]
 name = "addition"
@@ -14,6 +23,3 @@ name = "asm"
 
 [[bin]]
 name = "machine"
-
-[dependencies.macros]
-path = "lib/macros"
