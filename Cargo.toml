@@ -1,13 +1,13 @@
 [package]
 name = "strawberryvm"
-description = "A fantasy virtual machine with limits on resources."
-license = "MIT"
-repository = "https://github.com/BenMcAvoy/StrawberryVM"
-keywords = ["virtual", "emulation", "computer", "assembly"]
-categories = ["emulators", "game-engines"]
-
 version = "0.2.0"
 edition = "2021"
+
+description = "A fantasy virtual machine with limits on resources."
+keywords = ["virtual", "emulation", "computer", "assembly"]
+repository = "https://github.com/BenMcAvoy/StrawberryVM"
+categories = ["emulators", "game-engines"]
+license = "MIT"
 
 [dependencies.strawberryvm-derive]
 path = "lib/macros"

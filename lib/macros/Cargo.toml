@@ -3,6 +3,12 @@ name = "strawberryvm-derive"
 version = "0.1.0"
 edition = "2021"
 
+repository = "https://github.com/BenMcAvoy/StrawberryVM"
+description = "Derive macros for StrawberryVM."
+keywords = ["rust", "proc-macro", "derive"]
+categories = ["development-tools"]
+license = "MIT"
+
 [lib]
 proc-macro = true
 
