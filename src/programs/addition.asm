@@ -8,12 +8,6 @@ Push 11
 AddStack
 PopReg A
 
-; Experimental
-PushReg A
-PushReg A
-AddStack
-PopReg A
-
 ; Print registers
 Signal $f2
 
