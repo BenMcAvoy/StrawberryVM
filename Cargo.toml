@@ -6,10 +6,10 @@ repository = "https://github.com/BenMcAvoy/StrawberryVM"
 keywords = ["virtual", "emulation", "computer", "assembly"]
 categories = ["emulators", "game-engines"]
 
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
-[dependencies.macros]
+[dependencies.strawberryvm-derive]
 path = "lib/macros"
 version = "*"
 

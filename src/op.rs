@@ -1,7 +1,7 @@
 use crate::register::Register;
 use std::str::FromStr;
 
-use macros::VmInstruction;
+use strawberryvm_derive::VmInstruction;
 
 /// All instructions for the VM. They are automatically
 /// implemented with an encode function to turn them into

@@ -1,4 +1,4 @@
-use macros::FromU8;
+use strawberryvm_derive::FromU8;
 
 /// Enum for registers, only really used
 /// to coordinate the register slice.
