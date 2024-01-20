@@ -13,8 +13,8 @@ license = "MIT"
 proc-macro = true
 
 [dependencies]
-quote = "*"
+quote = "^1"
 
 [dependencies.syn]
-version = "*"
+version = "^2"
 features = [ "full" ]
