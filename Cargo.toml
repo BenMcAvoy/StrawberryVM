@@ -11,6 +11,7 @@ edition = "2021"
 
 [dependencies.macros]
 path = "lib/macros"
+version = "*"
 
 [lints.rust]
 unsafe_code = "forbid"
