@@ -15,6 +15,8 @@ pub mod prelude {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use crate::{
         register::Register,
         vm::{Machine, MEMORY_KILO_BYTES},

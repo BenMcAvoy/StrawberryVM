@@ -18,11 +18,17 @@ struct Assembler {
 
 impl Assembler {
     pub fn new(labels: &HashMap<&str, u8>, lines: &[&str]) -> Self {
-        let labels: HashMap<String, u8> = labels.iter().map(|(k, &v)| ((*k).to_string(), v)).collect();
+        let labels: HashMap<String, u8> =
+            labels.iter().map(|(k, &v)| ((*k).to_string(), v)).collect();
+
         let lines = lines.iter().map(ToString::to_string).collect();
         let output = Vec::new();
 
-        Self { output, labels, lines}
+        Self {
+            output,
+            labels,
+            lines,
+        }
     }
 }
 
