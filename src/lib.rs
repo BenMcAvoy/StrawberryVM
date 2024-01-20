@@ -21,9 +21,8 @@ mod tests {
         write_memory,
     };
 
-    fn sig_halt(vm: &mut Machine) -> Result<(), String> {
+    fn sig_halt(vm: &mut Machine) {
         vm.machine_halted = true;
-        Ok(())
     }
 
     // Tests for failure (these should fail!)
@@ -31,17 +30,19 @@ mod tests {
     fn unknown_instruction() {
         let mut machine = Machine::new();
         machine.memory.write(0, 0xF).unwrap();
-        assert!(machine.step().is_err())
+        assert!(machine.step().is_err());
     }
 
     #[test]
-    fn out_of_bound() {
+    fn out_of_bounds() -> Result<(), Box<dyn std::error::Error>> {
         let mut machine = Machine::new();
 
         assert!(machine
             .memory
-            .write((MEMORY_KILO_BYTES * 1024 + 1) as u16, 0xF)
+            .write(u16::try_from(MEMORY_KILO_BYTES * 1024 + 1)?, 0xf)
             .is_err());
+
+        Ok(())
     }
 
     #[test]

@@ -5,19 +5,16 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-fn sig_halt(vm: &mut Machine) -> Result<(), String> {
+fn sig_halt(vm: &mut Machine) {
     vm.machine_halted = true;
-    Ok(())
 }
 
-fn log_reg_a(vm: &mut Machine) -> Result<(), String> {
+fn log_reg_a(vm: &mut Machine) {
     println!("A = {}", vm.get_register(Register::A));
-    Ok(())
 }
 
-fn log_regs(vm: &mut Machine) -> Result<(), String> {
+fn log_regs(vm: &mut Machine) {
     println!("{}", vm.status());
-    Ok(())
 }
 
 fn load_program() -> Vec<u8> {

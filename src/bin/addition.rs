@@ -1,9 +1,7 @@
 use strawberryvm::prelude::*;
 
-fn sig_halt(vm: &mut Machine) -> Result<(), String> {
+fn sig_halt(vm: &mut Machine) {
     vm.machine_halted = true;
-
-    Ok(())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

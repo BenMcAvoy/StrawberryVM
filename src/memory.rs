@@ -1,18 +1,18 @@
 pub trait Addressable {
-    fn read(&self, addr: u16) -> Result<u8, MemoryError>;
-    fn write(&mut self, addr: u16, value: u8) -> Result<(), MemoryError>;
+    fn read(&self, addr: u16) -> Result<u8, Error>;
+    fn write(&mut self, addr: u16, value: u8) -> Result<(), Error>;
 
-    fn read_u16(&self, addr: u16) -> Result<u16, MemoryError> {
+    fn read_u16(&self, addr: u16) -> Result<u16, Error> {
         if let Ok(x0) = self.read(addr) {
             if let Ok(x1) = self.read(addr + 1) {
-                return Ok((x0 as u16) | ((x1 as u16) << 8));
+                return Ok(u16::from(x0) | (u16::from(x1) << 8));
             }
         };
 
-        Err(MemoryError::OutOfBounds(addr))
+        Err(Error::OutOfBounds(addr))
     }
 
-    fn write_u16(&mut self, addr: u16, value: u16) -> Result<(), MemoryError> {
+    fn write_u16(&mut self, addr: u16, value: u16) -> Result<(), Error> {
         let lower = value & 0xff;
         let upper = (value & 0xff00) >> 8;
 
@@ -20,18 +20,18 @@ pub trait Addressable {
         self.write(addr + 1, upper as u8)
     }
 
-    fn copy(&mut self, from: u16, to: u16, n: usize) -> Result<(), MemoryError> {
+    fn copy(&mut self, from: u16, to: u16, n: usize) -> Result<(), Error> {
         for i in 0..n {
-            let val = self.read(from + i as u16)?;
-            self.write(to + i as u16, val)?;
+            let val = self.read(from + u16::try_from(i).unwrap())?;
+            self.write(to + u16::try_from(i).unwrap(), val)?;
         }
 
         Ok(())
     }
 
-    fn load(&mut self, from: &[u8], addr: u16) -> Result<(), MemoryError> {
+    fn load(&mut self, from: &[u8], addr: u16) -> Result<(), Error> {
         for (i, byte) in from.iter().enumerate() {
-            self.write(addr + i as u16, *byte)?;
+            self.write(addr + u16::try_from(i).unwrap(), *byte)?;
         }
 
         Ok(())
@@ -40,35 +40,32 @@ pub trait Addressable {
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub enum MemoryError {
+pub enum Error {
     OutOfBounds(u16),
     OtherError,
 }
 
-impl std::fmt::Display for MemoryError {
+impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            MemoryError::OutOfBounds(v) => write!(f, "OutOfBounds error occurred @ 0x{:X}", v),
-            MemoryError::OtherError => write!(f, "Another error occurred"),
+            Error::OutOfBounds(v) => write!(f, "OutOfBounds error occurred @ 0x{v:X}"),
+            Error::OtherError => write!(f, "Another error occurred"),
         }
     }
 }
 
-impl std::error::Error for MemoryError {
+impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match *self {
-            MemoryError::OutOfBounds(_) => None,
-            MemoryError::OtherError => None,
-        }
+        None
     }
 }
 
-pub struct LinearMemory {
+pub struct Linear {
     bytes: Vec<u8>,
     size: usize,
 }
 
-impl LinearMemory {
+impl Linear {
     pub fn new(n: usize) -> Self {
         Self {
             bytes: vec![0; n],
@@ -77,18 +74,18 @@ impl LinearMemory {
     }
 }
 
-impl Addressable for LinearMemory {
-    fn read(&self, addr: u16) -> Result<u8, MemoryError> {
+impl Addressable for Linear {
+    fn read(&self, addr: u16) -> Result<u8, Error> {
         if (addr as usize) >= self.size {
-            return Err(MemoryError::OutOfBounds(addr));
+            return Err(Error::OutOfBounds(addr));
         }
 
         Ok(self.bytes[addr as usize])
     }
 
-    fn write(&mut self, addr: u16, value: u8) -> Result<(), MemoryError> {
+    fn write(&mut self, addr: u16, value: u8) -> Result<(), Error> {
         if (addr as usize) > self.size {
-            return Err(MemoryError::OutOfBounds(addr));
+            return Err(Error::OutOfBounds(addr));
         }
 
         self.bytes[addr as usize] = value;

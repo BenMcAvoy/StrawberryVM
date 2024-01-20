@@ -2,16 +2,15 @@ use crate::op::Instruction;
 use crate::register::Register;
 use std::collections::HashMap;
 
-use crate::memory::Addressable;
-use crate::memory::LinearMemory;
+use crate::memory;
 
 pub(crate) const REGISTER_COUNT: usize = 8;
 pub(crate) const MEMORY_KILO_BYTES: usize = 8;
 
-type SignalFunction = fn(&mut Machine) -> Result<(), String>;
+type SignalFunction = fn(&mut Machine);
 
 pub struct Machine {
-    pub memory: Box<dyn Addressable>,
+    pub memory: Box<dyn memory::Addressable>,
     registers: [u16; REGISTER_COUNT],
 
     signal_handlers: HashMap<u8, SignalFunction>,
@@ -26,16 +25,18 @@ impl Default for Machine {
 }
 
 impl Machine {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             registers: [0; REGISTER_COUNT],
-            memory: Box::new(LinearMemory::new(MEMORY_KILO_BYTES * 1024)),
+            memory: Box::new(memory::Linear::new(MEMORY_KILO_BYTES * 1024)),
 
             signal_handlers: HashMap::new(),
             machine_halted: false,
         }
     }
 
+    #[must_use]
     pub fn status(&self) -> String {
         let width = 4;
 
@@ -56,18 +57,19 @@ impl Machine {
 
         let line_width = (width + 3) * 8;
         let lines = vec![
-            String::from(""),
+            String::new(),
             format!("   {:^line_width$}", "» Registers «"),
             format!(" ┌{:─<line_width$}┐",""),
             format!(" │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │", "A", "B", "C", "M", "SP", "PC", "BP", "FLAGS"),
             format!(" │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^5} │", a, b, c, m, sp, pc, bp, flags),
             format!(" └{:─<line_width$}┘", ""),
-            String::from(""),
+            String::new(),
         ];
 
         lines.join("\n")
     }
 
+    #[must_use]
     pub fn get_register(&self, r: Register) -> u16 {
         self.registers[r as usize]
     }
@@ -76,6 +78,10 @@ impl Machine {
         self.signal_handlers.insert(id, handler);
     }
 
+    /// # Errors
+    /// This can fail if you attempt to write out of the memory constraints. E.g.
+    /// if the VM has 16KBs of RAM and you write to 16,385 (1 above 16kb), you will
+    /// get an error
     pub fn push(&mut self, v: u16) -> Result<(), Box<dyn std::error::Error>> {
         let sp = self.registers[Register::SP as usize];
         self.memory.write_u16(sp, v)?;
@@ -83,31 +89,38 @@ impl Machine {
         Ok(())
     }
 
+    /// # Errors
+    /// This can fail if you attempt pop too many values and the stack poitner goes
+    /// below zero, which is impossible for an unsigned integer.
     pub fn pop(&mut self) -> Result<u16, Box<dyn std::error::Error>> {
-        let sp = match self.registers[Register::SP as usize].checked_sub(2) {
-            Some(result) => result,
-            None => return Err("Stack pointer went back too far".into()),
+        let Some(sp) = self.registers[Register::SP as usize].checked_sub(2) else {
+            return Err("Stack pointer went back too far".into());
         };
 
         self.registers[Register::SP as usize] -= 2;
 
         self.memory
             .read_u16(sp)
-            .map_err(|_| format!("Failed to read memory @ 0x{:X}", sp))
+            .map_err(|_| format!("Failed to read memory @ 0x{sp:X}"))
             .map(Ok)?
     }
 
+    /// # Errors
+    /// This can error if memory read fails (see `read_u16`).
+    /// It can also fail if memory popping fails.
+    /// It can also fail if a signal is non-existant.
+    /// It can also fail if the instruction is invalid.
     pub fn step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let pc = self.registers[Register::PC as usize];
         self.registers[Register::PC as usize] += 2;
         let instruction = self.memory.read_u16(pc)?;
         let op = Instruction::try_from(instruction)?;
 
-        println!("{:0>4} │ Got instruction {op:?}", pc);
+        println!("{pc:0>4} │ Got instruction {op:?}");
 
         match op {
             Instruction::Nop => Ok(()),
-            Instruction::Push(v) => self.push(v as u16),
+            Instruction::Push(v) => self.push(u16::from(v)),
 
             Instruction::PopReg(r) => {
                 let popped = self.pop()?;
@@ -132,13 +145,13 @@ impl Machine {
             Instruction::Signal(signal) => {
                 self.signal_handlers
                     .get(&signal)
-                    .ok_or(format!("Unknown signal 0x{:X}", signal))?(self)?;
+                    .ok_or(format!("Unknown signal 0x{signal:X}"))?(self);
 
                 Ok(())
             }
 
             Instruction::Jmp(reg) => {
-                self.registers[Register::PC as usize] = reg as u16;
+                self.registers[Register::PC as usize] = u16::from(reg);
                 Ok(())
             }
         }
