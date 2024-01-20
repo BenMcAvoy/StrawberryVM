@@ -1,5 +1,11 @@
 [package]
 name = "strawberryvm"
+description = "A fantasy virtual machine with limits on resources."
+license = "MIT"
+repository = "https://github.com/BenMcAvoy/StrawberryVM"
+keywords = ["virtual", "emulation", "computer", "assembly"]
+categories = ["emulators", "game-engines"]
+
 version = "0.1.0"
 edition = "2021"
 
@@ -11,7 +17,15 @@ unsafe_code = "forbid"
 
 [lints.clippy]
 enum_glob_use = "deny"
+correctness = "deny"
 pedantic = "deny"
+
+suspicious = "warn"
+complexity = "warn"
+style = "warn"
+cargo = "warn"
+perf = "warn"
+
 # nursery = "deny"     - Future
 # unwrap_used = "deny" - Future
 
