@@ -1,5 +1,7 @@
 use macros::FromU8;
 
+/// Enum for registers, only really used
+/// to coordinate the register slice.
 #[derive(Debug, Clone, Copy, FromU8)]
 pub enum Register {
     A = 0,  // General purpose

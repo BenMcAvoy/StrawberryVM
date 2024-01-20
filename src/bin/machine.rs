@@ -17,6 +17,8 @@ fn log_regs(vm: &mut Machine) {
     println!("{}", vm.status());
 }
 
+/// Gets the inputted program as a vector of bytes
+/// to be loaded into the machines memory
 fn load_program() -> Vec<u8> {
     let args: Vec<String> = env::args().collect();
     assert!(args.len() >= 2);
@@ -32,6 +34,7 @@ fn load_program() -> Vec<u8> {
     program
 }
 
+/// Usage: ./machine <prog.bin>
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut vm = Machine::new();
 

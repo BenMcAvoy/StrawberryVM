@@ -60,12 +60,14 @@ impl std::error::Error for Error {
     }
 }
 
+/// Linear memory that can have dynamic size
 pub struct Linear {
     bytes: Vec<u8>,
     size: usize,
 }
 
 impl Linear {
+    /// Create new linear memory of a certain size
     pub fn new(n: usize) -> Self {
         Self {
             bytes: vec![0; n],

@@ -8,6 +8,9 @@ use std::fs::read_to_string;
 use std::io::stdout;
 use std::io::Write;
 
+/// The main struct for the assembler containing
+/// important information for creating a resultant
+/// binary that the machine can run.
 struct Assembler {
     pub output: Vec<u8>,
 
@@ -17,6 +20,8 @@ struct Assembler {
 }
 
 impl Assembler {
+    /// Creates a new assembler from some labels and the lines of an
+    /// assembly file as input.
     pub fn new(labels: &HashMap<&str, u8>, lines: &[&str]) -> Self {
         let labels: HashMap<String, u8> =
             labels.iter().map(|(k, &v)| ((*k).to_string(), v)).collect();
@@ -33,6 +38,8 @@ impl Assembler {
 }
 
 impl Assembler {
+    /// Used to parse a numeric based on whether it is binary,
+    /// decimal, or hexadecimal.
     fn parse_numeric(s: &str) -> Result<u8, Box<dyn std::error::Error>> {
         let first = s.chars().next().unwrap();
         let (num, radix) = match first {
@@ -44,6 +51,8 @@ impl Assembler {
         Ok(u8::from_str_radix(num, radix)?)
     }
 
+    /// Used to parse a register from a string into an actual
+    /// register than can be encoded into binary
     fn parse_register(s: &str) -> Result<Register, Box<dyn std::error::Error>> {
         match s {
             "A" => Ok(Register::A),
@@ -53,6 +62,11 @@ impl Assembler {
         }
     }
 
+    /// Used for the jump instruction to detect if the user is trying
+    /// to jump to a label they have defined or just a pc count.
+    ///
+    /// This is automatically done here and returns a simple u8 the
+    /// pc register is set to.
     fn parse_label(&self, s: &str) -> Result<u8, Box<dyn std::error::Error>> {
         if let Ok(u8) = Self::parse_numeric(s) {
             return Ok(u8);
@@ -76,6 +90,8 @@ impl Assembler {
     }
 
     // TODO: Very good candidate for derive macro.
+    /// Used to take a line and figure out what it's opcode and operand are to
+    /// create an instruction that can be encoded.
     fn handle_line(&self, parts: &[&str]) -> Result<Instruction, Box<dyn std::error::Error>> {
         let opcode = parts[0]
             .parse()
@@ -127,6 +143,8 @@ impl Assembler {
         }
     }
 
+    /// Central function that takes the input and turns it into actual assembly using helper
+    /// functions
     fn parse_input(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         for line in self
             .lines

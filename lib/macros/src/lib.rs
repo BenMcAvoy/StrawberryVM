@@ -5,6 +5,8 @@ use syn::DeriveInput;
 use quote::quote;
 use syn::{ItemEnum, LitInt};
 
+/// Automatically creates encode function and implements
+/// from traits.
 #[proc_macro_derive(VmInstruction, attributes(opcode))]
 pub fn derive_vm_instruction_impl(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
@@ -127,6 +129,8 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
     .into()
 }
 
+/// Automatically implements the from u8 trait
+/// for ease of use
 #[proc_macro_derive(FromU8)]
 pub fn derive_from_u8(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

@@ -3,6 +3,9 @@ use std::str::FromStr;
 
 use macros::VmInstruction;
 
+/// All instructions for the VM. They are automatically
+/// implemented with an encode function to turn them into
+/// binary and also implements From traits.
 #[derive(Debug, VmInstruction)]
 pub enum Instruction {
     #[opcode(0x0)]

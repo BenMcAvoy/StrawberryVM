@@ -1,3 +1,63 @@
+//! A fantasy virtual machine with limits on resources.
+//!
+//! ## Instructions
+//! | Name          | Arguments                       | Description                                                                         |
+//! |---------------|---------------------------------|-------------------------------------------------------------------------------------|
+//! | No Operation  | None                            | Does nothing.                                                                       |
+//! | Push          | u8 (8-bit value to push)        | Pushes an 8-bit value onto the stack.                                               |
+//! | Pop Register  | Register (destination register) | Pops a value from the stack into the specified register.                            |
+//! | Push Register | Register (source register)      | Pushes the value of the specified register onto the stack.                          |
+//! | Add Stack     | None                            | Adds the top two values on the stack.                                               |
+//! | Add Register  | Two Registers (operands)        | Adds the values of two registers and stores the result in the destination register. |
+//! | Signal        | u8 (signal value)               | Sends a signal with an 8-bit value.                                                 |
+//! | Jump          | u8 (target address)             | Jumps to the specified address in the program.                                      |
+
+//! ## Reserved symbols
+//! | Symbol | Use               |
+//! |--------|-------------------|
+//! | $      | Hexadecimal value |
+//! | %      | Binary value      |
+//! | ^      | Label value       |
+//!
+//! ## *Hopes* for this project
+//! - Turing completion
+//! - Custom assembly
+//! - Possible language implementation (C or Lua)
+//! - Video card
+//! - Ability to render games
+//!
+//! # Example usage:
+//! ```rust
+//! use strawberryvm::prelude::*;
+//!
+//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let mut vm = Machine::new();
+//!
+//!     vm.define_handler(0xF0, |machine| machine.machine_halted = true);
+//!
+//!     write_memory!(vm,
+//!        0 => 0x1,
+//!        1 => 0xA,
+//!        2 => 0x1,
+//!        3 => 0x8,
+//!        4 => 0x4,
+//!        5 => 0x0,
+//!        6 => 0x2,
+//!        7 => 0x0,
+//!        8 => 0x6,
+//!        9 => 0xF0
+//!     );
+//!
+//!     while !vm.machine_halted {
+//!         vm.step()?;
+//!     }
+//!
+//!     println!("A = {}", vm.get_register(Register::A));
+//!
+//!     Ok(())
+//! }
+//! ```
+
 mod macros;
 mod op;
 mod register;
@@ -5,6 +65,8 @@ mod vm;
 
 mod memory;
 
+/// Can be included to get everything useful
+/// for the machine
 pub mod prelude {
     pub use crate::write_memory;
 

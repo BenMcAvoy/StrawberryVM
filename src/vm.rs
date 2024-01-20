@@ -9,6 +9,12 @@ pub(crate) const MEMORY_KILO_BYTES: usize = 8;
 
 type SignalFunction = fn(&mut Machine);
 
+/// The main structure for the VM. This can be created
+/// and essentially is all you need to get going.
+///
+/// Through this structure, you can load data into
+/// the machines memory, define signals and start
+/// the machine.
 pub struct Machine {
     pub memory: Box<dyn memory::Addressable>,
     registers: [u16; REGISTER_COUNT],
@@ -25,6 +31,8 @@ impl Default for Machine {
 }
 
 impl Machine {
+    /// Creates a new instance of a Machine with register and memory counts
+    /// based on the constants set in the file.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -36,6 +44,9 @@ impl Machine {
         }
     }
 
+    /// Returns a table of each register as a string
+    /// This is only really useful for debugging and
+    /// is not really useful for anything else.
     #[must_use]
     pub fn status(&self) -> String {
         let width = 4;
@@ -69,30 +80,41 @@ impl Machine {
         lines.join("\n")
     }
 
+    /// Returns the value of of a register inside of the machine
+    /// Typically only useful for debugging or pulling data out
+    /// of the machine as the host.
     #[must_use]
     pub fn get_register(&self, r: Register) -> u16 {
         self.registers[r as usize]
     }
 
+    /// Creates a handler for a signal. Signals are simply used to
+    /// communicate to the host from inside the machine.
     pub fn define_handler(&mut self, id: u8, handler: SignalFunction) {
         self.signal_handlers.insert(id, handler);
     }
 
+    /// Used to push values to the stack. Will take in a u16, split it into two bytes
+    /// and write them to the machines memory.
+    ///
     /// # Errors
     /// This can fail if you attempt to write out of the memory constraints. E.g.
     /// if the VM has 16KBs of RAM and you write to 16,385 (1 above 16kb), you will
     /// get an error
-    pub fn push(&mut self, v: u16) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn push(&mut self, v: u16) -> Result<(), Box<dyn std::error::Error>> {
         let sp = self.registers[Register::SP as usize];
         self.memory.write_u16(sp, v)?;
         self.registers[Register::SP as usize] += 2;
         Ok(())
     }
 
+    /// Used to pop values off of the stack. Will return 2 bytes from the memory
+    /// as a u16.
+    ///
     /// # Errors
     /// This can fail if you attempt pop too many values and the stack poitner goes
     /// below zero, which is impossible for an unsigned integer.
-    pub fn pop(&mut self) -> Result<u16, Box<dyn std::error::Error>> {
+    pub(crate) fn pop(&mut self) -> Result<u16, Box<dyn std::error::Error>> {
         let Some(sp) = self.registers[Register::SP as usize].checked_sub(2) else {
             return Err("Stack pointer went back too far".into());
         };
@@ -105,6 +127,9 @@ impl Machine {
             .map(Ok)?
     }
 
+    /// Used to step the machine forward, can be called by a
+    /// virtual "clock" to simulate cpu cycles.
+    ///
     /// # Errors
     /// This can error if memory read fails (see `read_u16`).
     /// It can also fail if memory popping fails.
