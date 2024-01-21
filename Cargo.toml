@@ -13,6 +13,12 @@ license = "MIT"
 path = "lib/macros"
 version = ">=0.1"
 
+[profile.release]
+codegen-units = 1
+panic = 'abort'
+strip = true
+lto = true
+
 [lints.rust]
 unsafe_code = "forbid"
 
