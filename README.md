@@ -1,6 +1,25 @@
-# StrawberryVM
+<div align="center">
+  <a href="https://github.com/BenMcAvoy/StrawberryVM">
+    <img src="assets/logo-128x128.png" alt="Logo" width="128" height="128">
+  </a>
 
-A fantasy virtual machine with limits on resources.
+  <h3 align="center">StrawberryVM</h3>
+
+  <p align="center">
+    A fantasy virtual machine with limits on resources.
+    <br />
+    <a href="https://docs.rs/strawberryvm"><strong>« Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/BenMcAvoy/StrawberryVM/releases">Releases</a>
+    ·
+    <a href="https://github.com/BenMcAvoy/StrawberryVM/issues">Report Bugs</a>
+    ·
+    <a href="https://github.com/BenMcAvoy/StrawberryVM/issues">Request Features</a>
+  </p>
+</div>
+
+
 
 ## TODO
 - [x] Basic instructions
