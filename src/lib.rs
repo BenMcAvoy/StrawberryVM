@@ -59,11 +59,10 @@
 //! ```
 
 mod macros;
+mod memory;
 mod op;
 mod register;
 mod vm;
-
-mod memory;
 
 /// Can be included to get everything useful
 /// for the machine

@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("{}", vm.status());
                     println!("-- Restarting VM! --");
                     vm = Machine::new();
-                },
+                }
             }
         }
     }

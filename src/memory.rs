@@ -1,5 +1,12 @@
+/// A trait implemented on all types of memory used
+/// for the virtual machine.
 pub trait Addressable {
+    /// Read function implemented uniquely for reading
+    /// a single byte.
     fn read(&self, addr: u16) -> Result<u8, Error>;
+
+    /// Read function implemented uniquely for writing
+    /// a single byte.
     fn write(&mut self, addr: u16, value: u8) -> Result<(), Error>;
 
     fn read_u16(&self, addr: u16) -> Result<u16, Error> {
