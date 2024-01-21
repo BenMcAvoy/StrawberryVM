@@ -1,46 +1,9 @@
-[package]
-name = "strawberryvm"
-version = "0.2.0"
-edition = "2021"
-
-description = "A fantasy virtual machine with limits on resources."
-keywords = ["virtual", "emulation", "computer", "assembly"]
-repository = "https://github.com/BenMcAvoy/StrawberryVM"
-categories = ["emulators", "game-engines"]
-license = "MIT"
-
-[dependencies.strawberryvm-derive]
-path = "lib/macros"
-version = ">=0.1"
+[workspace]
+resolver = "2"
+members = [ "assembler" , "strawberry", "repl", "machine"]
 
 [profile.release]
 codegen-units = 1
 panic = 'abort'
 strip = true
 lto = true
-
-[lints.rust]
-unsafe_code = "forbid"
-
-[lints.clippy]
-enum_glob_use = "deny"
-correctness = "deny"
-pedantic = "deny"
-
-suspicious = "warn"
-complexity = "warn"
-style = "warn"
-cargo = "warn"
-perf = "warn"
-
-# nursery = "deny"     - Future
-# unwrap_used = "deny" - Future
-
-[[bin]]
-name = "addition"
-
-[[bin]]
-name = "jasm"
-
-[[bin]]
-name = "machine"
