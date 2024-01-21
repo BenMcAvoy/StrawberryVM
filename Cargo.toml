@@ -40,7 +40,7 @@ perf = "warn"
 name = "addition"
 
 [[bin]]
-name = "asm"
+name = "jasm"
 
 [[bin]]
 name = "machine"
