@@ -65,77 +65,86 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
             }
 
             if let syn::Fields::Unnamed(fields) = &x.fields {
-                let types: Vec<_> = fields.unnamed.iter().map(|f| &f.ty).collect();
+                let types: Vec<_> = fields
+                    .unnamed
+                    .iter()
+                    .map(|f| get_type_name(&f.ty))
+                    .collect();
 
-                if types.len() == 1 && get_type_name(types[0]) == "u8" {
-                    quote! {
+                let types: Vec<&str> = types.iter().map(AsRef::as_ref).collect();
+
+                match types[..] {
+                    ["u8"] => quote! {
                         Self::#name(u) => OpCode::#name as u16 | ((*u as u16) << 8)
-                    }
-                } else if types.len() == 1 && get_type_name(types[0]) == "Register" {
-                    quote! {
+                    },
+
+                    ["Register"] => quote! {
                         Self::#name(r) => OpCode::#name as u16 | ((*r as u16) & 0xf) << 8
-                    }
-                } else if types.len() == 2
-                    && get_type_name(types[0]) == "Register"
-                    && get_type_name(types[1]) == "Register"
-                {
-                    quote! {
-                        Self::#name(r1, r2) => OpCode::#name as u16 | ((*r1 as u16) & 0xf << 8)
-                            | ((*r2 as u16) & 0xf << 12)
-                    }
-                } else {
-                    panic!(
-                        "Unknown way to handle fields of type: {}",
-                        get_type_name(types[0])
-                    );
+                    },
+
+                    ["Register", "Register"] => quote! {
+                        Self::#name(r1, r2) => OpCode::#name as u16 | ((*r1 as u16) & 0xf) << 8
+                            | ((*r2 as u16) & 0xf) << 12
+                    },
+
+                    ["Register", "u8"] => quote! {
+                        // reg as u16 | 8 BIT INT
+                        // req as u16 | (((*reg as u8) >> 4) | (*amount))
+                        // Self::#name(reg, amount) => OpCode::#name as u16 | ((((*reg as u8) >> 4) | (amount)) as u16 >> 8)
+                        Self::#name(reg, amount) => ((((*reg as u8) << 4 | amount) as u16) << 8) | (OpCode::#name as u16)
+                        // ((*reg as u8) & 0xf) << 8
+                        // | ((*amount as u8) & 0xf) << 8
+                    },
+
+                    _ => panic!("Invalid types {types:?}"),
                 }
             } else {
                 panic!("Unknown fields type for ident {name}");
             }
         })
-        .collect();
+    .collect();
 
     quote! {
-            #[repr(u8)]
-            #[derive(Debug)]
-            pub enum OpCode {
-                #(#field_names = #field_values,)*
-            }
+        #[repr(u8)]
+        #[derive(Debug)]
+        pub enum OpCode {
+            #(#field_names = #field_values,)*
+        }
 
-            impl FromStr for OpCode {
-                type Err = String;
+        impl FromStr for OpCode {
+            type Err = String;
 
-                fn from_str(s: &str) -> Result<Self, Self::Err> {
-                    let s = s.to_lowercase();
-                    let s = s.as_str();
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                let s = s.to_lowercase();
+                let s = s.as_str();
 
-                    match s {
-                        #(#match_fields => Ok(Self::#field_names),)*
-                        _ => Err(format!("Unknown opcode {s}")),
-                    }
+                match s {
+                    #(#match_fields => Ok(Self::#field_names),)*
+                    _ => Err(format!("Unknown opcode {s}")),
                 }
             }
+        }
 
-            impl TryFrom<u8> for OpCode {
-                type Error = String;
+        impl TryFrom<u8> for OpCode {
+            type Error = String;
 
-                fn try_from(value: u8) -> Result<Self, Self::Error> {
-                    match value {
-                        #(x if x == Self::#field_names as u8 => Ok(Self::#field_names),)*
-                        // x if x == Self::AddReg as u8 => Ok(Self::AddReg),
-                        _ => Err(format!("Unknown opcode 0x{value:X}")),
-                    }
+            fn try_from(value: u8) -> Result<Self, Self::Error> {
+                match value {
+                    #(x if x == Self::#field_names as u8 => Ok(Self::#field_names),)*
+                    // x if x == Self::AddReg as u8 => Ok(Self::AddReg),
+                    _ => Err(format!("Unknown opcode 0x{value:X}")),
                 }
             }
+        }
 
-    impl Instruction {
-        pub fn encode_u16(&self) -> u16 {
-            match self {
-                #(#field_u16_encodings,)*
+        impl Instruction {
+            pub fn encode_u16(&self) -> u16 {
+                match self {
+                    #(#field_u16_encodings,)*
+                }
             }
         }
     }
-        }
     .into()
 }
 
@@ -158,8 +167,8 @@ pub fn derive_from_u8(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         impl From<u8> for #name {
             fn from(item: u8) -> Self {
                 match item {
-                  #(#variant_values => #name::#variant_names,)*
-                  _ => panic!("Invalid value"),
+                    #(#variant_values => #name::#variant_names,)*
+                    _ => panic!("Invalid value"),
                 }
             }
         }

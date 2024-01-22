@@ -179,6 +179,11 @@ impl Machine {
                 self.registers[Register::PC as usize] = u16::from(reg);
                 Ok(())
             }
+
+            Instruction::ShiftLeft(reg, amount) => {
+                self.registers[reg as usize] <<= amount;
+                Ok(())
+            }
         }
     }
 }

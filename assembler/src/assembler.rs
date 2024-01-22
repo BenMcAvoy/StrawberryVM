@@ -75,6 +75,11 @@ impl Assembler {
                 // Ok(Instruction::Jmp(self.parse_label(parts[1])?))
                 Ok(Instruction::Jmp(parse_numeric(parts[1])?))
             }
+
+            OpCode::ShiftLeft => {
+                let (r1, r2) = (parse_register(parts[1])?, parse_numeric(parts[2])?);
+                Ok(Instruction::ShiftLeft(r1, r2))
+            }
         }
     }
 

@@ -24,6 +24,8 @@ pub enum Instruction {
     Signal(u8),
     #[opcode(0x7)]
     Jmp(u8),
+    #[opcode(0x8)]
+    ShiftLeft(Register, u8),
 }
 
 fn parse_instruction_arg(ins: u16) -> u8 {
@@ -75,6 +77,16 @@ impl TryFrom<u16> for Instruction {
             OpCode::Jmp => {
                 let reg = parse_instruction_arg(ins);
                 Ok(Instruction::Jmp(reg))
+            }
+
+            OpCode::ShiftLeft => {
+                // let reg = Register::from(((ins & 0xf00) >> 8) as u8);
+                // let amount = ((ins & 0xf00) >> 12) as u8;
+
+                let higher = ((ins & 0xFF00) >> 8) as u8;
+                let (reg, amount) = ((higher & 0xF0) >> 4, higher & 0x0F);
+
+                Ok(Instruction::ShiftLeft(Register::from(reg), amount))
             }
         }
     }
