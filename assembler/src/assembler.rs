@@ -1,6 +1,14 @@
 use std::collections::HashMap;
 use strawberryvm::prelude::*;
 
+// TODO: Take input text. Filter it appopriately to remove all kinds of comments to
+// to get the valid assembly.
+// TODO: Split up into valid files for easier processing.
+// TODO: Iteratively process cleaned up input text and process into binary. (cleaned up version
+// rather than the current mess)
+// TODO: Future - Iteratively process that data and attempt to create some sort of tree or other data structure
+// to allow functions/subroutines to be possible.
+
 /// The main struct for the assembler containing
 /// important information for creating a resultant
 /// binary that the machine can run.
@@ -44,6 +52,7 @@ impl Assembler {
         Ok(u8::from_str_radix(num, radix)?)
     }
 
+    // TODO: Very good candidate for derive macro.
     /// Used to parse a register from a string into an actual
     /// register than can be encoded into binary
     fn parse_register(s: &str) -> Result<Register, Box<dyn std::error::Error>> {
