@@ -56,10 +56,12 @@ impl Assembler {
     /// Used to parse a register from a string into an actual
     /// register than can be encoded into binary
     fn parse_register(s: &str) -> Result<Register, Box<dyn std::error::Error>> {
-        match s {
-            "A" => Ok(Register::A),
-            "B" => Ok(Register::B),
-            "C" => Ok(Register::C),
+        let s = s.to_lowercase();
+
+        match s.as_str() {
+            "a" => Ok(Register::A),
+            "b" => Ok(Register::B),
+            "c" => Ok(Register::C),
             _ => Err(format!("Unknown register {s}").into()),
         }
     }
@@ -174,4 +176,3 @@ impl Assembler {
         Ok(())
     }
 }
-
