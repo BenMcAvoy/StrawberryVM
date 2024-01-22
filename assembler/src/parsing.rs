@@ -30,6 +30,11 @@ pub fn parse_register(s: &str) -> Result<Register, Box<dyn std::error::Error>> {
         "a" => Ok(Register::A),
         "b" => Ok(Register::B),
         "c" => Ok(Register::C),
+        "m" => Ok(Register::M),
+        "sp" => Ok(Register::SP),
+        "pc" => Ok(Register::PC),
+        "bp" => Ok(Register::BP),
+        "fl" => Ok(Register::FL),
         _ => Err(format!("Unknown register {s}").into()),
     }
 }
