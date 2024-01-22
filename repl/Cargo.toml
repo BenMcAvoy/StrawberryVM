@@ -3,5 +3,11 @@ name = "strawberry_repl"
 version = "0.1.0"
 edition = "2021"
 
+description = "A fantasy virtual machine with limits on resources."
+keywords = ["virtual", "emulation", "computer", "assembly"]
+repository = "https://github.com/BenMcAvoy/StrawberryVM"
+categories = ["emulators", "game-engines"]
+license = "MIT"
+
 [dependencies.strawberryvm]
 path = "../strawberry/"

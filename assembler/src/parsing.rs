@@ -34,7 +34,6 @@ pub fn parse_register(s: &str) -> Result<Register, Box<dyn std::error::Error>> {
     }
 }
 
-
 pub fn validate_jam(lines: &[&str]) -> Result<(), JamParseError> {
     let substituted = lines.iter().map(|l| match l.starts_with(';') {
         true => "",
@@ -48,7 +47,10 @@ pub fn validate_jam(lines: &[&str]) -> Result<(), JamParseError> {
         };
 
         if OpCode::from_str(opcode).is_err() {
-            return Err(JamParseError::InvalidOpCode(opcode.to_string(), line_number + 1))
+            return Err(JamParseError::InvalidOpCode(
+                opcode.to_string(),
+                line_number + 1,
+            ));
         }
     }
 

@@ -1,8 +1,8 @@
 use crate::passes::remove_comments_pass;
 use strawberryvm::prelude::*;
 
-use crate::parsing::parse_register;
 use crate::parsing::parse_numeric;
+use crate::parsing::parse_register;
 
 pub struct Assembler {
     pub(crate) input: Vec<String>,
@@ -46,10 +46,7 @@ impl Assembler {
             }
 
             OpCode::AddReg => {
-                let (r1, r2) = (
-                    parse_register(parts[1])?,
-                    parse_register(parts[2])?,
-                    );
+                let (r1, r2) = (parse_register(parts[1])?, parse_register(parts[2])?);
                 Ok(Instruction::AddReg(r1, r2))
             }
 

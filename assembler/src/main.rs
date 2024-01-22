@@ -2,8 +2,8 @@ use arguments::Arguments;
 use assembler::Assembler;
 use runner::run;
 
-mod assembler;
 mod arguments;
+mod assembler;
 mod parsing;
 mod passes;
 mod runner;
@@ -11,8 +11,8 @@ mod runner;
 // use crate::assembler::Assembler;
 
 use crate::arguments::usage;
-use crate::parsing::JamParseError;
 use crate::parsing::validate_jam;
+use crate::parsing::JamParseError;
 
 use std::fs::File;
 use std::io::Read;

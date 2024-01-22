@@ -56,10 +56,7 @@ impl Arguments {
             self.input = Some(parts[0].clone());
         }
 
-        let result: Vec<_> = result
-            .iter()
-            .map(|(k, v)| (k.as_str(), v))
-            .collect();
+        let result: Vec<_> = result.iter().map(|(k, v)| (k.as_str(), v)).collect();
 
         for result in result.clone() {
             match result {
