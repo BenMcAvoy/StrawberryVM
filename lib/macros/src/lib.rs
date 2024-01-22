@@ -73,7 +73,7 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
                     }
                 } else if types.len() == 1 && get_type_name(types[0]) == "Register" {
                     quote! {
-                        Self::#name(r) => OpCode::#name as u16 | ((*r as u16) & 0xf << 8)
+                        Self::#name(r) => OpCode::#name as u16 | ((*r as u16) & 0xf) << 8
                     }
                 } else if types.len() == 2
                     && get_type_name(types[0]) == "Register"
