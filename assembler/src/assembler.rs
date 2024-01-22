@@ -1,101 +1,34 @@
-use std::collections::HashMap;
+use crate::passes::remove_comments_pass;
 use strawberryvm::prelude::*;
 
-// TODO: Take input text. Filter it appopriately to remove all kinds of comments to
-// to get the valid assembly.
-// TODO: Split up into valid files for easier processing.
-// TODO: Iteratively process cleaned up input text and process into binary. (cleaned up version
-// rather than the current mess)
-// TODO: Future - Iteratively process that data and attempt to create some sort of tree or other data structure
-// to allow functions/subroutines to be possible.
+use crate::parsing::parse_register;
+use crate::parsing::parse_numeric;
 
-/// The main struct for the assembler containing
-/// important information for creating a resultant
-/// binary that the machine can run.
 pub struct Assembler {
-    pub output: Vec<u8>,
+    pub(crate) input: Vec<String>,
+    pub(crate) output: Vec<u8>,
+}
 
-    labels: HashMap<String, u8>,
+fn assert_length(parts: &[&str], n: usize) -> Result<(), Box<dyn std::error::Error>> {
+    if !parts.len() == n {
+        return Err(format!("Expected {} got {}", n, parts.len()).into());
+    }
 
-    lines: Vec<String>,
+    Ok(())
 }
 
 impl Assembler {
-    /// Creates a new assembler from some labels and the lines of an
-    /// assembly file as input.
-    pub fn new(labels: &HashMap<&str, u8>, lines: &[&str]) -> Self {
-        let labels: HashMap<String, u8> =
-            labels.iter().map(|(k, &v)| ((*k).to_string(), v)).collect();
-
-        let lines = lines.iter().map(ToString::to_string).collect();
+    pub fn new(lines: &[&str]) -> Self {
+        let input = lines.iter().map(ToString::to_string).collect();
         let output = Vec::new();
 
-        Self {
-            output,
-            labels,
-            lines,
-        }
-    }
-}
-
-impl Assembler {
-    /// Used to parse a numeric based on whether it is binary,
-    /// decimal, or hexadecimal.
-    fn parse_numeric(s: &str) -> Result<u8, Box<dyn std::error::Error>> {
-        let first = s.chars().next().unwrap();
-        let (num, radix) = match first {
-            '$' => (&s[1..], 16),
-            '%' => (&s[1..], 2),
-            _ => (s, 10),
-        };
-
-        Ok(u8::from_str_radix(num, radix)?)
+        Self { input, output }
     }
 
-    // TODO: Very good candidate for derive macro.
-    /// Used to parse a register from a string into an actual
-    /// register than can be encoded into binary
-    fn parse_register(s: &str) -> Result<Register, Box<dyn std::error::Error>> {
-        let s = s.to_lowercase();
-
-        match s.as_str() {
-            "a" => Ok(Register::A),
-            "b" => Ok(Register::B),
-            "c" => Ok(Register::C),
-            _ => Err(format!("Unknown register {s}").into()),
-        }
+    pub fn clean_passes(&mut self) {
+        remove_comments_pass(&mut self.input);
     }
 
-    /// Used for the jump instruction to detect if the user is trying
-    /// to jump to a label they have defined or just a pc count.
-    ///
-    /// This is automatically done here and returns a simple u8 the
-    /// pc register is set to.
-    fn parse_label(&self, s: &str) -> Result<u8, Box<dyn std::error::Error>> {
-        if let Ok(u8) = Self::parse_numeric(s) {
-            return Ok(u8);
-        }
-
-        if let Some(s) = s.strip_prefix('^') {
-            if let Some(u8) = self.labels.get(s) {
-                return Ok(*u8);
-            }
-        }
-
-        Err(format!("Couldn't parse {s}").into())
-    }
-
-    fn assert_length(parts: &[&str], n: usize) -> Result<(), Box<dyn std::error::Error>> {
-        if !parts.len() == n {
-            return Err(format!("Expected {} got {}", n, parts.len()).into());
-        }
-
-        Ok(())
-    }
-
-    // TODO: Very good candidate for derive macro.
-    /// Used to take a line and figure out what it's opcode and operand are to
-    /// create an instruction that can be encoded.
     fn handle_line(&self, parts: &[&str]) -> Result<Instruction, Box<dyn std::error::Error>> {
         let opcode = parts[0]
             .parse()
@@ -103,65 +36,54 @@ impl Assembler {
 
         match opcode {
             OpCode::Push => {
-                Self::assert_length(parts, 2)?;
-                Ok(Instruction::Push(Self::parse_numeric(parts[1])?))
+                assert_length(parts, 2)?;
+                Ok(Instruction::Push(parse_numeric(parts[1])?))
             }
 
             OpCode::AddStack => {
-                Self::assert_length(parts, 1)?;
+                assert_length(parts, 1)?;
                 Ok(Instruction::AddStack)
             }
 
             OpCode::AddReg => {
                 let (r1, r2) = (
-                    Self::parse_register(parts[1])?,
-                    Self::parse_register(parts[2])?,
-                );
+                    parse_register(parts[1])?,
+                    parse_register(parts[2])?,
+                    );
                 Ok(Instruction::AddReg(r1, r2))
             }
 
             OpCode::PopReg => {
-                Self::assert_length(parts, 2)?;
-                Ok(Instruction::PopReg(Self::parse_register(parts[1])?))
+                assert_length(parts, 2)?;
+                Ok(Instruction::PopReg(parse_register(parts[1])?))
             }
 
             OpCode::PushReg => {
-                Self::assert_length(parts, 2)?;
-                Ok(Instruction::PushReg(Self::parse_register(parts[1])?))
+                assert_length(parts, 2)?;
+                Ok(Instruction::PushReg(parse_register(parts[1])?))
             }
 
             OpCode::Signal => {
-                Self::assert_length(parts, 2)?;
-                Ok(Instruction::Signal(Self::parse_numeric(parts[1])?))
+                assert_length(parts, 2)?;
+                Ok(Instruction::Signal(parse_numeric(parts[1])?))
             }
 
             OpCode::Nop => {
-                Self::assert_length(parts, 1)?;
+                assert_length(parts, 1)?;
                 Ok(Instruction::Nop)
             }
 
             OpCode::Jmp => {
-                Self::assert_length(parts, 2)?;
-                Ok(Instruction::Jmp(self.parse_label(parts[1])?))
+                assert_length(parts, 2)?;
+                // Ok(Instruction::Jmp(self.parse_label(parts[1])?))
+                Ok(Instruction::Jmp(parse_numeric(parts[1])?))
             }
         }
     }
 
-    /// Central function that takes the input and turns it into actual assembly using helper
-    /// functions
     pub fn parse_input(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        for line in self
-            .lines
-            .iter()
-            .filter(|line| !line.is_empty())
-            .filter(|line| !line.starts_with(';'))
-            .filter(|line| !line.ends_with(':'))
-        {
+        for line in self.input.iter() {
             let parts: Vec<&str> = line.split(' ').filter(|x| !x.is_empty()).collect();
-
-            if parts.is_empty() {
-                continue;
-            }
 
             let instruction = self.handle_line(&parts)?;
             let raw_instruction: u16 = instruction.encode_u16();
