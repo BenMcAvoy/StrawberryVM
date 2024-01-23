@@ -80,6 +80,31 @@ impl Assembler {
                 let (r1, r2) = (parse_register(parts[1])?, parse_numeric(parts[2])?);
                 Ok(Instruction::ShiftLeft(r1, r2))
             }
+
+            OpCode::ShiftRight => {
+                let (r1, r2) = (parse_register(parts[1])?, parse_numeric(parts[2])?);
+                Ok(Instruction::ShiftRight(r1, r2))
+            }
+
+            OpCode::And => {
+                let (r1, r2) = (parse_register(parts[1])?, parse_register(parts[2])?);
+                Ok(Instruction::And(r1, r2))
+            }
+
+            OpCode::Or => {
+                let (r1, r2) = (parse_register(parts[2])?, parse_register(parts[1])?);
+                Ok(Instruction::Or(r1, r2))
+            }
+
+            OpCode::LoadA => {
+                assert_length(parts, 2)?;
+                Ok(Instruction::LoadA(parse_numeric(parts[1])?))
+            }
+
+            OpCode::LoadB => {
+                assert_length(parts, 2)?;
+                Ok(Instruction::LoadB(parse_numeric(parts[1])?))
+            }
         }
     }
 

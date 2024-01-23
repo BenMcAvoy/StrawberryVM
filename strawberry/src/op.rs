@@ -24,8 +24,21 @@ pub enum Instruction {
     Signal(u8),
     #[opcode(0x7)]
     Jmp(u8),
+
+    // Bitshift operators
     #[opcode(0x8)]
     ShiftLeft(Register, u8),
+    #[opcode(0x9)]
+    ShiftRight(Register, u8),
+    #[opcode(0xa)]
+    And(Register, Register),
+    #[opcode(0xb)]
+    Or(Register, Register),
+
+    #[opcode(0xc)]
+    LoadA(u8),
+    #[opcode(0xd)]
+    LoadB(u8),
 }
 
 fn parse_instruction_arg(ins: u16) -> u8 {
@@ -80,13 +93,41 @@ impl TryFrom<u16> for Instruction {
             }
 
             OpCode::ShiftLeft => {
-                // let reg = Register::from(((ins & 0xf00) >> 8) as u8);
-                // let amount = ((ins & 0xf00) >> 12) as u8;
-
                 let higher = ((ins & 0xFF00) >> 8) as u8;
                 let (reg, amount) = ((higher & 0xF0) >> 4, higher & 0x0F);
 
                 Ok(Instruction::ShiftLeft(Register::from(reg), amount))
+            }
+
+            OpCode::ShiftRight => {
+                let higher = ((ins & 0xFF00) >> 8) as u8;
+                let (reg, amount) = ((higher & 0xF0) >> 4, higher & 0x0F);
+
+                Ok(Instruction::ShiftRight(Register::from(reg), amount))
+            }
+
+            OpCode::And => {
+                let higher = ((ins & 0xFF00) >> 8) as u8;
+                let (r1, r2) = ((higher & 0xF0) >> 4, higher & 0x0F);
+
+                Ok(Instruction::And(Register::from(r1), Register::from(r2)))
+            }
+
+            OpCode::Or => {
+                let higher = ((ins & 0xFF00) >> 8) as u8;
+                let (r1, r2) = ((higher & 0xF0) >> 4, higher & 0x0F);
+
+                Ok(Instruction::Or(Register::from(r1), Register::from(r2)))
+            }
+
+            OpCode::LoadA => {
+                let arg = parse_instruction_arg(ins);
+                Ok(Instruction::LoadA(arg))
+            }
+
+            OpCode::LoadB => {
+                let arg = parse_instruction_arg(ins);
+                Ok(Instruction::LoadB(arg))
             }
         }
     }

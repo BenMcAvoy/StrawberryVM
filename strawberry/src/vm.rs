@@ -49,7 +49,7 @@ impl Machine {
     /// is not really useful for anything else.
     #[must_use]
     pub fn status(&self) -> String {
-        let width = 4;
+        let width = 5;
 
         let (a, b, c, m) = (
             self.get_register(Register::A),
@@ -66,13 +66,13 @@ impl Machine {
 
         let flags = self.get_register(Register::FL);
 
-        let line_width = (width + 3) * 8;
+        let line_width = (width + 3) * 8 - 1;
         let lines = vec![
             String::new(),
             format!("   {:^line_width$}", "» Registers «"),
             format!(" ┌{:─<line_width$}┐",""),
             format!(" │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │", "A", "B", "C", "M", "SP", "PC", "BP", "FLAGS"),
-            format!(" │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^5} │", a, b, c, m, sp, pc, bp, flags),
+            format!(" │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │ {:^width$} │", a, b, c, m, sp, pc, bp, flags),
             format!(" └{:─<line_width$}┘", ""),
             String::new(),
         ];
@@ -182,6 +182,31 @@ impl Machine {
 
             Instruction::ShiftLeft(reg, amount) => {
                 self.registers[reg as usize] <<= amount;
+                Ok(())
+            }
+
+            Instruction::ShiftRight(reg, amount) => {
+                self.registers[reg as usize] >>= amount;
+                Ok(())
+            }
+
+            Instruction::And(r1, r2) => {
+                self.registers[r1 as usize] &= self.registers[r2 as usize];
+                Ok(())
+            }
+
+            Instruction::Or(r1, r2) => {
+                self.registers[r1 as usize] |= self.registers[r2 as usize];
+                Ok(())
+            }
+
+            Instruction::LoadA(val) => {
+                self.registers[Register::A as usize] = u16::from(val);
+                Ok(())
+            }
+
+            Instruction::LoadB(val) => {
+                self.registers[Register::B as usize] = u16::from(val);
                 Ok(())
             }
         }

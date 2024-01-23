@@ -12,7 +12,7 @@
 //! | Add Register  | Two Registers (operands)                         | Adds the values of two registers and stores the result in the destination register. |
 //! | Signal        | u8 (signal value)                                | Sends a signal with an 8-bit value.                                                 |
 //! | Jump          | u8 (target address)                              | Jumps to the specified address in the program.                                      |
-//! | ShiftLeft     | Register (target register) and u8 (shift amount) | Left shifts a specific register by a certain amount.                                |
+//! | `ShiftLeft`   | Register (target register) and u8 (shift amount) | Left shifts a specific register by a certain amount.                                |
 //!
 //! ## Reserved symbols
 //! | Symbol | Use               |
