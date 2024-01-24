@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::memory;
 
 pub(crate) const REGISTER_COUNT: usize = 8;
-pub(crate) const MEMORY_KILO_BYTES: usize = 8;
+pub(crate) const MEMORY_KILO_BYTES: usize = 1;
 
 type SignalFunction = fn(&mut Machine);
 
@@ -180,23 +180,35 @@ impl Machine {
                 Ok(())
             }
 
-            Instruction::ShiftLeft(reg, amount) => {
-                self.registers[reg as usize] <<= amount;
+            Instruction::ShiftLeft(amount) => {
+                let popped = self.pop()?;
+                self.push(popped << amount)?;
+
                 Ok(())
             }
 
-            Instruction::ShiftRight(reg, amount) => {
-                self.registers[reg as usize] >>= amount;
+            Instruction::ShiftRight(amount) => {
+                let popped = self.pop()?;
+                self.push(popped >> amount)?;
+
                 Ok(())
             }
 
-            Instruction::And(r1, r2) => {
-                self.registers[r1 as usize] &= self.registers[r2 as usize];
+            Instruction::And => {
+                let a = self.pop()?;
+                let b = self.pop()?;
+
+                self.push(a & b)?;
+
                 Ok(())
             }
 
-            Instruction::Or(r1, r2) => {
-                self.registers[r1 as usize] |= self.registers[r2 as usize];
+            Instruction::Or => {
+                let a = self.pop()?;
+                let b = self.pop()?;
+
+                self.push(a | b)?;
+
                 Ok(())
             }
 
@@ -207,6 +219,14 @@ impl Machine {
 
             Instruction::LoadB(val) => {
                 self.registers[Register::B as usize] = u16::from(val);
+                Ok(())
+            }
+
+            Instruction::LoadReg(r1, r2) => {
+                let mem = self.memory.read_u16(self.registers[r2 as usize])?;
+                dbg!(mem);
+
+                self.registers[r1 as usize] = mem;
                 Ok(())
             }
         }

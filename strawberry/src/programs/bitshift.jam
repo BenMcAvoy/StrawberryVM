@@ -1,8 +1,9 @@
-LoadA $FF           ; Load                  0000000011111111
-ShiftLeft A 8       ; Turn it into          1111111100000000
-LoadA $FF           ; Load                  0000000011111111
+Push $FF            ; Push        0000000011111111
+Left 8              ; Shift it to 1111111100000000
+Push $FF            ; Push        0000000011111111
 
-Or A B              ; Or them together into 1111111111111111
+Or                  ; Or them together into 1111111111111111
+PopReg A            ; Put the top value of the stack into Register A
 
 Signal $F2          ; Print registers
 Signal $f0          ; Quit

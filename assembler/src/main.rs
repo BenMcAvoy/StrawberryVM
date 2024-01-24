@@ -81,9 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             exit(1);
         };
 
-        assembler.clean_passes();
-
-        // dbg!(assembler.input);
+        assembler.passes();
         assembler.parse_input()?;
 
         if args.run {

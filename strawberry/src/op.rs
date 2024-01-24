@@ -27,18 +27,21 @@ pub enum Instruction {
 
     // Bitshift operators
     #[opcode(0x8)]
-    ShiftLeft(Register, u8),
+    ShiftLeft(u8),
     #[opcode(0x9)]
-    ShiftRight(Register, u8),
+    ShiftRight(u8),
     #[opcode(0xa)]
-    And(Register, Register),
+    And,
     #[opcode(0xb)]
-    Or(Register, Register),
+    Or,
 
     #[opcode(0xc)]
     LoadA(u8),
     #[opcode(0xd)]
     LoadB(u8),
+
+    #[opcode(0xe)]
+    LoadReg(Register, Register),
 }
 
 fn parse_instruction_arg(ins: u16) -> u8 {
@@ -92,33 +95,11 @@ impl TryFrom<u16> for Instruction {
                 Ok(Instruction::Jmp(reg))
             }
 
-            OpCode::ShiftLeft => {
-                let higher = ((ins & 0xFF00) >> 8) as u8;
-                let (reg, amount) = ((higher & 0xF0) >> 4, higher & 0x0F);
+            OpCode::ShiftRight => Ok(Instruction::ShiftRight(parse_instruction_arg(ins))),
+            OpCode::ShiftLeft => Ok(Instruction::ShiftLeft(parse_instruction_arg(ins))),
 
-                Ok(Instruction::ShiftLeft(Register::from(reg), amount))
-            }
-
-            OpCode::ShiftRight => {
-                let higher = ((ins & 0xFF00) >> 8) as u8;
-                let (reg, amount) = ((higher & 0xF0) >> 4, higher & 0x0F);
-
-                Ok(Instruction::ShiftRight(Register::from(reg), amount))
-            }
-
-            OpCode::And => {
-                let higher = ((ins & 0xFF00) >> 8) as u8;
-                let (r1, r2) = ((higher & 0xF0) >> 4, higher & 0x0F);
-
-                Ok(Instruction::And(Register::from(r1), Register::from(r2)))
-            }
-
-            OpCode::Or => {
-                let higher = ((ins & 0xFF00) >> 8) as u8;
-                let (r1, r2) = ((higher & 0xF0) >> 4, higher & 0x0F);
-
-                Ok(Instruction::Or(Register::from(r1), Register::from(r2)))
-            }
+            OpCode::And => Ok(Instruction::And),
+            OpCode::Or => Ok(Instruction::Or),
 
             OpCode::LoadA => {
                 let arg = parse_instruction_arg(ins);
@@ -128,6 +109,13 @@ impl TryFrom<u16> for Instruction {
             OpCode::LoadB => {
                 let arg = parse_instruction_arg(ins);
                 Ok(Instruction::LoadB(arg))
+            }
+
+            OpCode::LoadReg => {
+                let higher = ((ins & 0xFF00) >> 8) as u8;
+                let (r1, r2) = ((higher & 0xF0) >> 4, higher & 0x0F);
+
+                Ok(Instruction::LoadReg(Register::from(r1), Register::from(r2)))
             }
         }
     }
