@@ -1,25 +1,14 @@
-use arguments::Arguments;
-use assembler::Assembler;
-use runner::run;
-
-mod arguments;
-mod assembler;
-mod parsing;
-mod passes;
-mod runner;
-
-// use crate::assembler::Assembler;
-
-use crate::arguments::usage;
-use crate::parsing::validate_jam;
-use crate::parsing::JamParseError;
+use jasm::arguments::usage;
+use jasm::arguments::Arguments;
+use jasm::assembler::Assembler;
+use jasm::helpers::DynErr;
+use jasm::parsing::validate_jam;
+use jasm::parsing::JamParseError;
+use jasm::runner::run;
 
 use std::fs::File;
-use std::io::Read;
-use std::io::Write;
-
+use std::io::prelude::*;
 use std::path::Path;
-use std::process::exit;
 
 /// Jasm - Jam assembler
 ///
@@ -37,68 +26,55 @@ use std::process::exit;
 ///     jasm main.jam -o out.bin
 ///     jasm main.jam -r
 ///     jasm main.jam
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), DynErr> {
     let mut args = Arguments::default();
     args.populate_args();
 
+    let assembler = Assembler();
+
     if let Some(input) = args.input {
-        let mut file = match File::open(input.clone()) {
-            Ok(file) => file,
-            Err(e) => {
-                if e.kind() == std::io::ErrorKind::NotFound {
-                    eprintln!("Jam file {input:?} was not found!");
-                    exit(1);
-                } else {
-                    eprintln!("Error loading file {e}");
-                    usage();
-                    exit(1);
+        if let Ok(mut file) = File::open(&input) {
+            let mut contents = String::new();
+            file.read_to_string(&mut contents)
+                .expect("Failed to read file");
+
+            let lines: Vec<String> = contents.lines().map(String::from).collect();
+            let bytes = assembler.parse_vec(&lines)?;
+
+            if let Err(e) = validate_jam(&lines) {
+                eprintln!("Encountered error when validating!");
+
+                match e {
+                    JamParseError::InvalidOpCode(opcode, line) => {
+                        eprintln!("Invalid opcode `{}` on line {}", opcode, line);
+
+                        if let Some(line_content) = lines.get(line - 1) {
+                            let width = line_content.len();
+                            eprintln!("\n{}\n{:~<width$}", line_content, "", width = width);
+                        }
+                    }
                 }
-            }
-        };
 
-        let mut contents = String::new();
-        file.read_to_string(&mut contents)
-            .expect("Failed to read file");
-
-        let lines: Vec<&str> = contents.lines().collect();
-
-        let mut assembler = Assembler::new(&lines);
-        if let Err(e) = validate_jam(&lines) {
-            eprintln!("Encountered error when validating!");
-
-            match e {
-                JamParseError::InvalidOpCode(opcode, line) => {
-                    eprintln!("Invalid opcode `{opcode}` on line {line}");
-
-                    let line = lines.get(line - 1).unwrap();
-                    let width = line.len();
-
-                    eprintln!("\n{line}");
-                    eprintln!("{:~<width$}", "");
-                }
+                std::process::exit(1);
             }
 
-            exit(1);
-        };
+            if args.run {
+                run(&bytes)?;
+            }
 
-        assembler.passes();
-        assembler.parse_input()?;
-
-        if args.run {
-            run(&assembler.output)?;
-        }
-
-        if !args.run || args.output.is_some() {
-            let out_path = match args.output {
-                Some(v) => v,
-                None => {
+            if !args.run || args.output.is_some() {
+                let out_path = args.output.unwrap_or_else(|| {
                     let stem = Path::new(&input).file_stem().unwrap().to_str().unwrap();
-                    format!("{stem}.bin")
-                }
-            };
+                    format!("{}.bin", stem)
+                });
 
-            let mut file = File::create(out_path)?;
-            file.write_all(&assembler.output)?;
+                let mut file = File::create(out_path)?;
+                file.write_all(&bytes)?;
+            }
+        } else {
+            eprintln!("Error loading file {:?}", input);
+            usage();
+            std::process::exit(1);
         }
     }
 

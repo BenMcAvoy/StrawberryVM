@@ -1,10 +1,22 @@
-use std::str::FromStr;
+use std::{error::Error, str::FromStr};
 
 use strawberryvm::prelude::*;
 
 #[derive(Debug)]
 pub enum JamParseError {
     InvalidOpCode(String, usize),
+}
+
+impl Error for JamParseError {}
+
+impl std::fmt::Display for JamParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            JamParseError::InvalidOpCode(invalid, line) => {
+                write!(f, "Error at {invalid} on line {line}")
+            }
+        }
+    }
 }
 
 /// Used to parse a numeric based on whether it is binary,
@@ -39,24 +51,22 @@ pub fn parse_register(s: &str) -> Result<Register, Box<dyn std::error::Error>> {
     }
 }
 
-pub fn validate_jam(lines: &[&str]) -> Result<(), JamParseError> {
-    let substituted = lines.iter().map(|l| match l.starts_with(';') {
-        true => "",
-        false => l,
-    });
+pub fn validate_line(line: &str, index: usize) -> Result<(), JamParseError> {
+    let opcode = match line.split_whitespace().next() {
+        Some(v) => v,
+        None => return Err(JamParseError::InvalidOpCode(line.to_string(), index)),
+    };
 
-    for (line_number, line) in substituted.enumerate() {
-        let opcode = match line.split_whitespace().next() {
-            Some(v) => v,
-            None => continue,
-        };
+    if OpCode::from_str(opcode).is_err() {
+        return Err(JamParseError::InvalidOpCode(opcode.to_string(), index + 1));
+    }
 
-        if OpCode::from_str(opcode).is_err() {
-            return Err(JamParseError::InvalidOpCode(
-                opcode.to_string(),
-                line_number + 1,
-            ));
-        }
+    Ok(())
+}
+
+pub fn validate_jam(lines: &[String]) -> Result<(), JamParseError> {
+    for (line_number, line) in lines.iter().enumerate() {
+        validate_line(line, line_number)?;
     }
 
     Ok(())

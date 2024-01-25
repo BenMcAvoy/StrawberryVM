@@ -1,35 +1,45 @@
-use crate::passes::remove_comments_pass;
-use strawberryvm::prelude::*;
+use crate::helpers::assert_length;
+use crate::helpers::split_u16;
+use crate::helpers::DynErr;
+
+use crate::parsing::validate_line;
+use crate::passes::*;
 
 use crate::parsing::parse_numeric;
 use crate::parsing::parse_register;
 
-pub struct Assembler {
-    pub(crate) input: Vec<String>,
-    pub(crate) output: Vec<u8>,
-}
+use strawberryvm::prelude::*;
 
-fn assert_length(parts: &[&str], n: usize) -> Result<(), Box<dyn std::error::Error>> {
-    if !parts.len() == n {
-        return Err(format!("Expected {} got {}", n, parts.len()).into());
-    }
-
-    Ok(())
-}
+pub struct Assembler();
 
 impl Assembler {
-    pub fn new(lines: &[&str]) -> Self {
-        let input = lines.iter().map(ToString::to_string).collect();
-        let output = Vec::new();
+    pub fn parse_vec(&self, input: &[String]) -> Result<Vec<u8>, DynErr> {
+        let mut out = Vec::new();
+        for (index, line) in input.iter().enumerate() {
+            let dbyte = self.parse_line(String::from(line), index)?;
 
-        Self { input, output }
+            let (lower, upper) = split_u16(dbyte);
+
+            out.push(lower);
+            out.push(upper);
+        }
+
+        Ok(out)
     }
 
-    pub fn passes(&mut self) {
-        remove_comments_pass(&mut self.input);
+    pub fn parse_line(&self, text: String, line_number: usize) -> Result<u16, DynErr> {
+        let text_slice = text.as_str();
+        let cleaned = pre::remove_comments_pass(text_slice);
+        validate_line(&cleaned, line_number)?;
+
+        let parts: Vec<&str> = text_slice.split(' ').filter(|x| !x.is_empty()).collect();
+
+        let instruction = self.handle_line(&parts)?;
+
+        Ok(instruction.encode_u16())
     }
 
-    fn handle_line(&self, parts: &[&str]) -> Result<Instruction, Box<dyn std::error::Error>> {
+    fn handle_line(&self, parts: &[&str]) -> Result<Instruction, DynErr> {
         let opcode = parts[0]
             .parse()
             .map_err(|_| format!("Unknown opcode: {}", parts[0]))?;
@@ -76,13 +86,9 @@ impl Assembler {
                 Ok(Instruction::Jmp(parse_numeric(parts[1])?))
             }
 
-            OpCode::ShiftLeft => {
-                Ok(Instruction::ShiftLeft(parse_numeric(parts[1])?))
-            }
+            OpCode::ShiftLeft => Ok(Instruction::ShiftLeft(parse_numeric(parts[1])?)),
 
-            OpCode::ShiftRight => {
-                Ok(Instruction::ShiftRight(parse_numeric(parts[1])?))
-            }
+            OpCode::ShiftRight => Ok(Instruction::ShiftRight(parse_numeric(parts[1])?)),
 
             OpCode::And => Ok(Instruction::And),
             OpCode::Or => Ok(Instruction::Or),
@@ -105,22 +111,5 @@ impl Assembler {
                 ))
             }
         }
-    }
-
-    pub fn parse_input(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        for line in self.input.iter() {
-            let parts: Vec<&str> = line.split(' ').filter(|x| !x.is_empty()).collect();
-
-            let instruction = self.handle_line(&parts)?;
-            let raw_instruction: u16 = instruction.encode_u16();
-
-            let lower = (raw_instruction & 0xff) as u8;
-            let upper = (raw_instruction >> 8) as u8;
-
-            self.output.push(lower);
-            self.output.push(upper);
-        }
-
-        Ok(())
     }
 }
