@@ -1,7 +1,23 @@
-use std::io::stdin;
+use std::io::{stdin, stdout, Write};
 
 use jasm::{assembler::Assembler, helpers::DynErr};
 use strawberryvm::prelude::*;
+
+fn sig_halt(vm: &mut Machine) {
+    vm.machine_halted = true;
+}
+
+fn log_reg_a(vm: &mut Machine) {
+    println!("A = {}", vm.get_register(Register::A));
+}
+
+fn log_regs(vm: &mut Machine) {
+    println!("{}", vm.status());
+}
+
+fn mem_dump(vm: &mut Machine) {
+    println!("{}", vm.memory.dump());
+}
 
 fn reset(machine: &mut Machine, e: DynErr) -> u16 {
     println!("Failed: {e:?}");
@@ -15,10 +31,17 @@ fn main() -> Result<(), DynErr> {
     let mut machine = Machine::new();
     let mut mem_index = 0;
 
+    machine.define_handler(0xF0, sig_halt);
+    machine.define_handler(0xF1, log_reg_a);
+    machine.define_handler(0xF2, log_regs);
+    machine.define_handler(0xF3, mem_dump);
+
     let assembler = Assembler();
 
     loop {
         let mut input = String::new();
+        print!(">>> ");
+        stdout().flush().unwrap();
         stdin().read_line(&mut input)?;
         let input = input.trim();
 
