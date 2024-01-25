@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [ "assembler" , "strawberry" ]
+members = [ "repl" , "strawberry", "assembler" ]
 
 [profile.release]
 codegen-units = 1
