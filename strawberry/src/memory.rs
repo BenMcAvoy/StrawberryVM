@@ -90,7 +90,7 @@ impl Addressable for Linear {
         self.bytes
             .chunks_exact(2)
             .fold(String::new(), |mut acc, chunk| {
-                acc.push_str(&format!("{:0x}{:0x} ", chunk[0], chunk[1]));
+                acc.push_str(&format!("{:02x}{:02x} ", chunk[0], chunk[1]));
                 acc
             })
     }
