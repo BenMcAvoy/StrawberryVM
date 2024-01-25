@@ -87,10 +87,12 @@ impl Linear {
 
 impl Addressable for Linear {
     fn dump(&self) -> String {
-        self.bytes.chunks_exact(2).fold(String::new(), |mut acc, chunk| {
-            acc.push_str(&format!("{:0x}{:0x} ", chunk[0], chunk[1]));
-            acc
-        })
+        self.bytes
+            .chunks_exact(2)
+            .fold(String::new(), |mut acc, chunk| {
+                acc.push_str(&format!("{:0x}{:0x} ", chunk[0], chunk[1]));
+                acc
+            })
     }
 
     fn read(&self, addr: u16) -> Result<u8, Error> {
