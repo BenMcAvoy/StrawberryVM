@@ -42,7 +42,6 @@ impl Assembler {
         let cleaned = pre::remove_comments_pass(text_slice);
 
         if let Some(text) = cleaned {
-            dbg!(&text);
             validate_line(&text, line_number)?;
 
             let parts: Vec<&str> = text_slice.split(' ').filter(|x| !x.is_empty()).collect();

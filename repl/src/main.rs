@@ -69,7 +69,7 @@ fn main() -> Result<(), DynErr> {
         match machine.memory.write_u16(mem_index, dbyte) {
             Ok(()) => mem_index += 2,
             Err(e) => {
-                mem_index = reset(&mut machine, Box::new(e));
+                mem_index = reset(&mut machine, e);
                 continue;
             }
         };
