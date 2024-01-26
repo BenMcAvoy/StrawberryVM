@@ -224,7 +224,6 @@ impl Machine {
 
             Instruction::LoadReg(r1, r2) => {
                 let mem = self.memory.read_u16(self.registers[r2 as usize])?;
-                dbg!(mem);
 
                 self.registers[r1 as usize] = mem;
                 Ok(())
