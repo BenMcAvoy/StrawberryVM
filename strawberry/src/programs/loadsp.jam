@@ -1,0 +1,15 @@
+Push %00000001      ; Push the upper bits
+ShiftLeft 8         ; Shift them over to the correct position
+Push %11110100      ; Push the lower bits
+Or                  ; Or them together into one 16-bit number
+LoadB 0             ; Put a 0 into Register B for the memory address
+LoadReg B SP        ; Load memory in memory address in B to stack pointer
+
+Signal $F2          ; Dump registers through the host
+
+Push 12             ; Push 12 to the stack
+Push 32             ; Push 32 to the stack
+AddStack            ; Add the top two variables on the stack together and push the result
+PopReg A            ; Pop the top value on the stack (the result) to register A
+Signal $F2          ; Dump register through the host (We expect 44 in register A)
+Signal $F0          ; Quit the program through the host
