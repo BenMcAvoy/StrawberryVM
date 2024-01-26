@@ -5,6 +5,7 @@ use strawberryvm::prelude::*;
 #[derive(Debug)]
 pub enum JamParseError {
     InvalidOpCode(String, usize),
+    Empty(usize),
 }
 
 impl Error for JamParseError {}
@@ -14,6 +15,10 @@ impl std::fmt::Display for JamParseError {
         match self {
             JamParseError::InvalidOpCode(invalid, line) => {
                 write!(f, "Error at {invalid} on line {line}")
+            }
+
+            JamParseError::Empty(line) => {
+                write!(f, "Error, empty line {line}")
             }
         }
     }

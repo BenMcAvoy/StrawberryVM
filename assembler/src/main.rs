@@ -6,6 +6,8 @@ use jasm::parsing::validate_jam;
 use jasm::parsing::JamParseError;
 use jasm::runner::run;
 
+use jasm::passes::pre::remove_comments_pass;
+
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -41,6 +43,11 @@ fn main() -> Result<(), DynErr> {
             let lines: Vec<String> = contents.lines().map(String::from).collect();
             let bytes = assembler.parse_vec(&lines)?;
 
+            let lines: Vec<String> = lines
+                .iter()
+                .filter_map(|line| remove_comments_pass(line))
+                .collect();
+
             if let Err(e) = validate_jam(&lines) {
                 eprintln!("Encountered error when validating!");
 
@@ -53,6 +60,8 @@ fn main() -> Result<(), DynErr> {
                             eprintln!("\n{}\n{:~<width$}", line_content, "", width = width);
                         }
                     }
+
+                    JamParseError::Empty(_) => (),
                 }
 
                 std::process::exit(1);

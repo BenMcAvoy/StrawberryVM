@@ -1,14 +1,12 @@
 pub mod pre {
-    pub fn remove_comments_pass(text: &str) -> String {
-        text.lines()
-            .filter_map(|l| {
-                if l.is_empty() || l.starts_with(';') {
-                    None
-                } else {
-                    Some(l.split(';').next().unwrap_or("").to_string())
-                }
-            })
-            .collect()
+    pub fn remove_comments_pass(text: &str) -> Option<String> {
+        let first = text.split(';').next().unwrap_or("");
+
+        if first.is_empty() {
+            return None;
+        }
+
+        Some(String::from(first))
     }
 }
 
