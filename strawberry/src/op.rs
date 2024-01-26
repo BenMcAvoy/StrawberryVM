@@ -27,36 +27,6 @@ pub enum Instruction {
     // Host communication
     #[opcode(0x6)]
     Signal(u8),
-
-    // Flow management
-    #[opcode(0x7)]
-    Jmp(u8),
-    #[opcode(0x8)]
-    JmpNE(u8),
-    #[opcode(0x9)]
-    JmpEQ(u8),
-
-    // Bitshift operators
-    #[opcode(0xa)]
-    ShiftLeft(u8),
-    #[opcode(0xb)]
-    ShiftRight(u8),
-    #[opcode(0xc)]
-    And,
-    #[opcode(0xd)]
-    Or,
-
-    // Loading operators
-    #[opcode(0xe)]
-    LoadA(u8),
-    #[opcode(0xf)]
-    LoadB(u8),
-    #[opcode(0x10)]
-    LoadReg(Register, Register),
-
-    // Arithmetic
-    #[opcode(0x11)]
-    Cmp(Register, Register),
 }
 
 fn parse_instruction_arg(ins: u16) -> u8 {
@@ -103,51 +73,6 @@ impl TryFrom<u16> for Instruction {
             OpCode::Signal => {
                 let arg = parse_instruction_arg(ins);
                 Ok(Instruction::Signal(arg))
-            }
-
-            OpCode::Jmp => {
-                let reg = parse_instruction_arg(ins);
-                Ok(Instruction::Jmp(reg))
-            }
-
-            OpCode::JmpNE => {
-                let reg = parse_instruction_arg(ins);
-                Ok(Instruction::JmpNE(reg))
-            }
-
-            OpCode::JmpEQ => {
-                let reg = parse_instruction_arg(ins);
-                Ok(Instruction::JmpEQ(reg))
-            }
-
-            OpCode::ShiftRight => Ok(Instruction::ShiftRight(parse_instruction_arg(ins))),
-            OpCode::ShiftLeft => Ok(Instruction::ShiftLeft(parse_instruction_arg(ins))),
-
-            OpCode::And => Ok(Instruction::And),
-            OpCode::Or => Ok(Instruction::Or),
-
-            OpCode::LoadA => {
-                let arg = parse_instruction_arg(ins);
-                Ok(Instruction::LoadA(arg))
-            }
-
-            OpCode::LoadB => {
-                let arg = parse_instruction_arg(ins);
-                Ok(Instruction::LoadB(arg))
-            }
-
-            OpCode::LoadReg => {
-                let higher = ((ins & 0xFF00) >> 8) as u8;
-                let (r1, r2) = ((higher & 0xF0) >> 4, higher & 0x0F);
-
-                Ok(Instruction::LoadReg(Register::from(r1), Register::from(r2)))
-            }
-
-            OpCode::Cmp => {
-                let higher = ((ins & 0xFF00) >> 8) as u8;
-                let (r1, r2) = ((higher & 0xF0) >> 4, higher & 0x0F);
-
-                Ok(Instruction::Cmp(Register::from(r1), Register::from(r2)))
             }
         }
     }
