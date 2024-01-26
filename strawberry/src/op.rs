@@ -8,8 +8,11 @@ use strawberryvm_derive::VmInstruction;
 /// binary and also implements From traits.
 #[derive(Debug, VmInstruction)]
 pub enum Instruction {
+    // Miscellaneous
     #[opcode(0x0)]
     Nop,
+
+    // Memory management
     #[opcode(0x1)]
     Push(u8),
     #[opcode(0x2)]
@@ -20,28 +23,40 @@ pub enum Instruction {
     AddStack,
     #[opcode(0x5)]
     AddReg(Register, Register),
+
+    // Host communication
     #[opcode(0x6)]
     Signal(u8),
+
+    // Flow management
     #[opcode(0x7)]
     Jmp(u8),
+    #[opcode(0x8)]
+    JmpNE(u8),
+    #[opcode(0x9)]
+    JmpEQ(u8),
 
     // Bitshift operators
-    #[opcode(0x8)]
-    ShiftLeft(u8),
-    #[opcode(0x9)]
-    ShiftRight(u8),
     #[opcode(0xa)]
-    And,
+    ShiftLeft(u8),
     #[opcode(0xb)]
+    ShiftRight(u8),
+    #[opcode(0xc)]
+    And,
+    #[opcode(0xd)]
     Or,
 
-    #[opcode(0xc)]
-    LoadA(u8),
-    #[opcode(0xd)]
-    LoadB(u8),
-
+    // Loading operators
     #[opcode(0xe)]
+    LoadA(u8),
+    #[opcode(0xf)]
+    LoadB(u8),
+    #[opcode(0x10)]
     LoadReg(Register, Register),
+
+    // Arithmetic
+    #[opcode(0x11)]
+    Cmp(Register, Register),
 }
 
 fn parse_instruction_arg(ins: u16) -> u8 {
@@ -95,6 +110,16 @@ impl TryFrom<u16> for Instruction {
                 Ok(Instruction::Jmp(reg))
             }
 
+            OpCode::JmpNE => {
+                let reg = parse_instruction_arg(ins);
+                Ok(Instruction::JmpNE(reg))
+            }
+
+            OpCode::JmpEQ => {
+                let reg = parse_instruction_arg(ins);
+                Ok(Instruction::JmpEQ(reg))
+            }
+
             OpCode::ShiftRight => Ok(Instruction::ShiftRight(parse_instruction_arg(ins))),
             OpCode::ShiftLeft => Ok(Instruction::ShiftLeft(parse_instruction_arg(ins))),
 
@@ -116,6 +141,13 @@ impl TryFrom<u16> for Instruction {
                 let (r1, r2) = ((higher & 0xF0) >> 4, higher & 0x0F);
 
                 Ok(Instruction::LoadReg(Register::from(r1), Register::from(r2)))
+            }
+
+            OpCode::Cmp => {
+                let higher = ((ins & 0xFF00) >> 8) as u8;
+                let (r1, r2) = ((higher & 0xF0) >> 4, higher & 0x0F);
+
+                Ok(Instruction::Cmp(Register::from(r1), Register::from(r2)))
             }
         }
     }

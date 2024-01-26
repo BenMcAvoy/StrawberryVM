@@ -31,6 +31,16 @@ impl Default for Machine {
 }
 
 impl Machine {
+    fn set_zero_flag(&mut self, result: u16) {
+        // Set the zero flag based on whether the result is zero
+        self.registers[Register::FL as usize] = u16::from(result == 0);
+    }
+
+    fn _set_sign_flag(&mut self, result: u16) {
+        // Assuming sign flag is in the high bit of FLAGS register
+        self.registers[Register::FL as usize] = (result >> 15) & 1;
+    }
+
     /// Creates a new instance of a Machine with register and memory counts
     /// based on the constants set in the file.
     #[must_use]
@@ -180,6 +190,22 @@ impl Machine {
                 Ok(())
             }
 
+            Instruction::JmpNE(reg) => {
+                if self.registers[Register::FL as usize] & 0x1 == 0 {
+                    self.registers[Register::PC as usize] = u16::from(reg);
+                }
+
+                Ok(())
+            }
+
+            Instruction::JmpEQ(reg) => {
+                if self.registers[Register::FL as usize] & 0x1 == 1 {
+                    self.registers[Register::PC as usize] = u16::from(reg);
+                }
+
+                Ok(())
+            }
+
             Instruction::ShiftLeft(amount) => {
                 let popped = self.pop()?;
                 self.push(popped << amount)?;
@@ -226,6 +252,18 @@ impl Machine {
                 let mem = self.memory.read_u16(self.registers[r2 as usize])?;
 
                 self.registers[r1 as usize] = mem;
+                Ok(())
+            }
+
+            Instruction::Cmp(r1, r2) => {
+                let a = self.registers[r1 as usize];
+                let b = self.registers[r2 as usize];
+
+                let result = a.wrapping_sub(b);
+
+                self.set_zero_flag(result);
+                // self.set_sign_flag(result);
+
                 Ok(())
             }
         }

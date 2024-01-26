@@ -96,13 +96,33 @@ impl Assembler {
 
             OpCode::Jmp => {
                 assert_length(parts, 2)?;
-                // Ok(Instruction::Jmp(self.parse_label(parts[1])?))
                 Ok(Instruction::Jmp(parse_numeric(parts[1])?))
             }
 
-            OpCode::ShiftLeft => Ok(Instruction::ShiftLeft(parse_numeric(parts[1])?)),
+            OpCode::JmpEQ => {
+                assert_length(parts, 2)?;
+                Ok(Instruction::JmpEQ(parse_numeric(parts[1])?))
+            }
 
-            OpCode::ShiftRight => Ok(Instruction::ShiftRight(parse_numeric(parts[1])?)),
+            OpCode::JmpNE => {
+                assert_length(parts, 2)?;
+                Ok(Instruction::JmpNE(parse_numeric(parts[1])?))
+            }
+
+            OpCode::Jmp => {
+                assert_length(parts, 2)?;
+                Ok(Instruction::Jmp(parse_numeric(parts[1])?))
+            }
+
+            OpCode::ShiftLeft => {
+                assert_length(parts, 1)?;
+                Ok(Instruction::ShiftLeft(parse_numeric(parts[1])?))
+            }
+
+            OpCode::ShiftRight => {
+                assert_length(parts, 1)?;
+                Ok(Instruction::ShiftRight(parse_numeric(parts[1])?))
+            }
 
             OpCode::And => Ok(Instruction::And),
             OpCode::Or => Ok(Instruction::Or),
@@ -120,9 +140,17 @@ impl Assembler {
             OpCode::LoadReg => {
                 assert_length(parts, 2)?;
                 Ok(Instruction::LoadReg(
-                        parse_register(parts[1])?,
-                        parse_register(parts[2])?,
-                        ))
+                    parse_register(parts[1])?,
+                    parse_register(parts[2])?,
+                ))
+            }
+
+            OpCode::Cmp => {
+                assert_length(parts, 2)?;
+                Ok(Instruction::Cmp(
+                    parse_register(parts[1])?,
+                    parse_register(parts[2])?,
+                ))
             }
         }
     }
