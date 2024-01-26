@@ -6,5 +6,5 @@ for member in "${member_list[@]}"; do
   member_stripped="${member//\"/}"
   member_stripped=$(echo $member_stripped | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
-  cargo install --path $member_stripped
+  cargo install --path $member_stripped "$@"
 done
