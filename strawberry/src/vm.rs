@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 use crate::memory;
 
-pub(crate) const REGISTER_COUNT: usize = 8;
-pub(crate) const MEMORY_KILO_BYTES: usize = 1;
+pub const MEMORY_KILO_BYTES: usize = 1;
+pub const REGISTER_COUNT: usize = 8;
 
 type SignalFunction = fn(&mut Machine);
 
@@ -84,7 +84,7 @@ impl Machine {
     /// Typically only useful for debugging or pulling data out
     /// of the machine as the host.
     #[must_use]
-    pub fn get_register(&self, r: Register) -> u16 {
+    pub const fn get_register(&self, r: Register) -> u16 {
         self.registers[r as usize]
     }
 

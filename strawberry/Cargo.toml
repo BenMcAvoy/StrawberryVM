@@ -3,6 +3,8 @@ name = "strawberryvm"
 version = "0.2.0"
 edition = "2021"
 
+rust-version = "1.70.0"
+
 readme = "../README.md"
 description = "A fantasy virtual machine with limits on resources."
 keywords = ["virtual", "emulation", "computer", "assembly"]
@@ -28,5 +30,5 @@ style = "warn"
 cargo = "warn"
 perf = "warn"
 
-# nursery = "deny"     - Future
+nursery = "warn"
 unwrap_used = "deny"
