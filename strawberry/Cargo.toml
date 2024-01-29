@@ -21,14 +21,13 @@ unsafe_code = "forbid"
 
 [lints.clippy]
 enum_glob_use = "deny"
+unwrap_used = "deny"
 correctness = "deny"
 pedantic = "deny"
+perf = "deny"
 
 suspicious = "warn"
 complexity = "warn"
+nursery = "warn"
 style = "warn"
 cargo = "warn"
-perf = "warn"
-
-nursery = "warn"
-unwrap_used = "deny"
