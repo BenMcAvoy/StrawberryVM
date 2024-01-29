@@ -10,6 +10,8 @@ repository = "https://github.com/BenMcAvoy/StrawberryVM"
 categories = ["emulators", "game-engines"]
 license = "MIT"
 
+publish = false
+
 [dependencies.strawberryvm]
 path = "../strawberry"
 
