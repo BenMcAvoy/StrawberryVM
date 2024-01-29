@@ -37,7 +37,7 @@ pub fn parse_numeric(s: &str) -> Result<u8, Box<dyn std::error::Error>> {
     Ok(u8::from_str_radix(num, radix)?)
 }
 
-// TODO: Very good candidate for derive macro.
+// NOTE: Very good candidate for derive macro.
 /// Used to parse a register from a string into an actual
 /// register than can be encoded into binary
 pub fn parse_register(s: &str) -> Result<Register, Box<dyn std::error::Error>> {
