@@ -35,6 +35,16 @@ fn get_type_name(ty: &syn::Type) -> String {
     }
 }
 
+fn variant_opcode_value(v: &syn::Variant) -> u8 {
+    for attr in v.attrs.iter() {
+        if attr.path().is_ident("opcode") {
+            return attr.parse_args::<syn::LitInt>().unwrap().base10_parse().unwrap();
+        }
+    }
+
+    0
+}
+
 fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
     let field_names: Vec<_> = ast.variants.iter().map(|x| &x.ident).collect();
     let field_values = ast.variants.iter().map(|x| {
@@ -87,13 +97,94 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
                             | ((*r2 as u16) & 0xf) << 12
                     },
 
-                    ["Register", "u8"] => quote! {
-                        // reg as u16 | 8 BIT INT
-                        // req as u16 | (((*reg as u8) >> 4) | (*amount))
-                        // Self::#name(reg, amount) => OpCode::#name as u16 | ((((*reg as u8) >> 4) | (amount)) as u16 >> 8)
-                        Self::#name(reg, amount) => ((((*reg as u8) << 4 | amount) as u16) << 8) | (OpCode::#name as u16)
-                        // ((*reg as u8) & 0xf) << 8
-                        // | ((*amount as u8) & 0xf) << 8
+                    _ => panic!("Invalid types {types:?}"),
+                }
+            } else {
+                panic!("Unknown fields type for ident {name}");
+            }
+        })
+    .collect();
+
+    let field_u16_decodings: Vec<_> = ast
+        .variants
+        .iter()
+        .map(|x| {
+            let value = variant_opcode_value(x);
+            let name = &x.ident;
+
+            if let syn::Fields::Unit = &x.fields {
+                return quote! {
+                    #value => Ok(Self::#name)
+                };
+            }
+
+            if let syn::Fields::Unnamed(fields) = &x.fields {
+                let types: Vec<_> = fields
+                    .unnamed
+                    .iter()
+                    .map(|f| get_type_name(&f.ty))
+                    .collect();
+
+                let types: Vec<&str> = types.iter().map(AsRef::as_ref).collect();
+
+                match types[..] {
+                    ["u8"] => quote! {
+                        #value => Ok(Self::#name(((ins & 0xff00) >> 8) as u8))
+                    },
+
+                    ["Register"] => quote! {
+                        #value => Ok(Self::#name(Register::from(((ins & 0xf00) >> 8) as u8)))
+                    },
+
+                    ["Register", "Register"] => quote! {
+                        #value => {
+                            let r1 = Register::from(((ins & 0xf00) >> 8) as u8);
+                            let r2 = Register::from(((ins & 0xf000) >> 12) as u8);
+
+                            Ok(Self::#name(r1, r2))
+                        }
+                    },
+
+                    _ => panic!("Invalid types {types:?}"),
+                }
+            } else {
+                panic!("Unknown fields type for ident {name}");
+            }
+        })
+    .collect();
+
+    let field_to_string: Vec<_> = ast
+        .variants
+        .iter()
+        .map(|x| {
+            let name = &x.ident;
+
+            if let syn::Fields::Unit = &x.fields {
+                return quote! {
+                    Self::#name => write!(f, stringify!(#name))
+                };
+            }
+
+            if let syn::Fields::Unnamed(fields) = &x.fields {
+                let types: Vec<_> = fields
+                    .unnamed
+                    .iter()
+                    .map(|f| get_type_name(&f.ty))
+                    .collect();
+
+                let types: Vec<&str> = types.iter().map(AsRef::as_ref).collect();
+
+                match types[..] {
+                    ["u8"] => quote! {
+                        Self::#name(byte) => write!(f, "{} {}", stringify!(#name), byte)
+                    },
+
+                    ["Register"] => quote! {
+                        Self::#name(r) => write!(f, "{} {}", stringify!(#name), r)
+                    },
+
+                    ["Register", "Register"] => quote! {
+                        Self::#name(r1, r2) => write!(f, "{} {} {}", stringify!(#name), r1, r2)
                     },
 
                     _ => panic!("Invalid types {types:?}"),
@@ -131,8 +222,28 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
             fn try_from(value: u8) -> Result<Self, Self::Error> {
                 match value {
                     #(x if x == Self::#field_names as u8 => Ok(Self::#field_names),)*
-                    // x if x == Self::AddReg as u8 => Ok(Self::AddReg),
                     _ => Err(format!("Unknown opcode 0x{value:X}")),
+                }
+            }
+        }
+
+        impl TryFrom<u16> for Instruction {
+            type Error = String;
+
+            fn try_from(ins: u16) -> Result<Self, Self::Error> {
+                let op = (ins & 0xff) as u8;
+
+                match op {
+                    #(#field_u16_decodings,)*
+                    _ => panic!("Invalid types"),
+                }
+            }
+        }
+
+        impl std::fmt::Display for Instruction {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    #(#field_to_string,)*
                 }
             }
         }
@@ -170,6 +281,37 @@ pub fn derive_from_u8(input: proc_macro::TokenStream) -> proc_macro::TokenStream
                     #(#variant_values => #name::#variant_names,)*
                     _ => panic!("Invalid value"),
                 }
+            }
+        }
+    };
+
+    proc_macro::TokenStream::from(expanded)
+}
+
+/// Automatically implements the from display trait
+/// for ease of use
+#[proc_macro_derive(Display)]
+pub fn derive_display(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = input.ident;
+
+    let variants = if let syn::Data::Enum(data) = input.data {
+        data.variants
+    } else {
+        panic!("Display can only be derived for enums");
+    };
+
+    let variant_names: Vec<_> = variants.iter().map(|v| &v.ident).collect();
+
+    let expanded = quote! {
+        impl std::fmt::Display for #name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let string = match self {
+                    #(Self::#variant_names => stringify!(#variant_names),)*
+                    _ => panic!("Invalid value"),
+                };
+
+                write!(f, "{string}")
             }
         }
     };

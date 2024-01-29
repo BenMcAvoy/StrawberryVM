@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 type DynErr = Box<dyn std::error::Error>;
 
 /// A trait implemented on all types of memory used
@@ -59,8 +61,8 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Error::OutOfBounds(v) => write!(f, "OutOfBounds error occurred @ 0x{v:X}"),
-            Error::OtherError => write!(f, "Another error occurred"),
+            Self::OutOfBounds(v) => write!(f, "OutOfBounds error occurred @ 0x{v:X}"),
+            Self::OtherError => write!(f, "Another error occurred"),
         }
     }
 }
@@ -89,12 +91,13 @@ impl Linear {
 
 impl Addressable for Linear {
     fn dump(&self) -> String {
-        self.bytes
-            .chunks_exact(2)
-            .fold(String::new(), |mut acc, chunk| {
-                acc.push_str(&format!("{:02x}{:02x} ", chunk[0], chunk[1]));
-                acc
-            })
+        let mut result = String::with_capacity(self.bytes.len() * 4);
+
+        for chunk in self.bytes.chunks_exact(2) {
+            write!(result, "{:02x}{:02x} ", chunk[0], chunk[1]).unwrap();
+        }
+
+        result
     }
 
     fn read(&self, addr: u16) -> Result<u8, DynErr> {

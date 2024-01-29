@@ -1,8 +1,8 @@
-use strawberryvm_derive::FromU8;
+use strawberryvm_derive::{FromU8, Display};
 
 /// Enum for registers, only really used
 /// to coordinate the register slice.
-#[derive(Debug, Clone, Copy, FromU8)]
+#[derive(Debug, Clone, Copy, FromU8, Display)]
 pub enum Register {
     A = 0,  // General purpose
     B = 1,  // General purpose
