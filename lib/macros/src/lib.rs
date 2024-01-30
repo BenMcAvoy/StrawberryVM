@@ -9,8 +9,8 @@
 //! somehow, go ahead!
 
 use proc_macro::TokenStream;
-use syn::{ItemEnum, LitInt};
 use quote::quote;
+use syn::{ItemEnum, LitInt};
 
 use std_traits::impl_derive_display;
 use std_traits::impl_derive_from_str;
@@ -20,6 +20,17 @@ mod std_traits;
 
 /// Automatically creates encode function and implements
 /// from traits.
+///
+/// # Example usage
+/// ```rust
+/// pub enum Instruction {
+///     #[opcode(0x0)]
+///     Nop
+///
+///     #[opcode(0x1)]
+///     Push(u8)
+/// }
+/// ```
 #[proc_macro_derive(VmInstruction, attributes(opcode))]
 pub fn derive_vm_instruction_impl(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
@@ -266,14 +277,8 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
     .into()
 }
 
-
 /// Automatically implements the from u8 trait
 /// for ease of use
-///
-/// This function is here because the proc macro
-/// signature has to reside in the root, hence
-/// defined here and calls the implementation
-/// function.
 #[proc_macro_derive(FromU8)]
 pub fn derive_from_u8(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     impl_derive_from_u8(input)
@@ -281,11 +286,6 @@ pub fn derive_from_u8(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
 /// Automatically implements the from display trait
 /// for ease of use
-///
-/// This function is here because the proc macro
-/// signature has to reside in the root, hence
-/// defined here and calls the implementation
-/// function.
 #[proc_macro_derive(Display)]
 pub fn derive_display(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     impl_derive_display(input)
@@ -293,11 +293,6 @@ pub fn derive_display(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
 /// Automatically implements the from u8 trait
 /// for ease of use
-///
-/// This function is here because the proc macro
-/// signature has to reside in the root, hence
-/// defined here and calls the implementation
-/// function.
 #[proc_macro_derive(FromStr)]
 pub fn derive_from_str(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     impl_derive_from_str(input)

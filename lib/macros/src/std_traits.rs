@@ -38,10 +38,7 @@ pub fn impl_derive_from_str(input: proc_macro::TokenStream) -> proc_macro::Token
         panic!("FromStr can only be derived for enums");
     };
 
-    let variant_names: Vec<_> = variants
-        .iter()
-        .map(|v| &v.ident)
-        .collect();
+    let variant_names: Vec<_> = variants.iter().map(|v| &v.ident).collect();
 
     let expanded = quote! {
         impl std::str::FromStr for #name {
