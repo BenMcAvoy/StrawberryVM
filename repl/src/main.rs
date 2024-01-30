@@ -1,86 +1,62 @@
-use std::io::{stdin, stdout, Write};
+use jasm::signals::apply_signals;
+use jasm::assembler::Assembler;
+use jasm::helpers::DynErr;
 
-use jasm::{assembler::Assembler, helpers::DynErr};
 use strawberryvm::prelude::*;
 
-fn sig_halt(vm: &mut Machine) {
-    vm.machine_halted = true;
-}
+use crate::helpers::get_input;
 
-fn log_reg_a(vm: &mut Machine) {
-    println!("A = {}", vm.get_register(Register::A));
-}
+mod helpers;
 
-fn log_regs(vm: &mut Machine) {
-    println!("{}", vm.status());
-}
-
-fn mem_dump(vm: &mut Machine) {
-    println!("{}", vm.memory.dump());
-}
-
-fn reset(machine: &mut Machine, e: DynErr) -> u16 {
-    println!("Failed: {e:?}");
-    println!("{}", machine.status());
-    println!("-- Restarting VM! --");
-    *machine = Machine::new();
-    0
+fn process_input(
+    assembler: &Assembler,
+    machine: &mut Machine,
+    mem_index: u16,
+    input: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let dbyte = assembler.parse_line(String::from(input), 0)?;
+    machine.memory.write_u16(mem_index, dbyte)?;
+    machine.step()?;
+    Ok(())
 }
 
 fn main() -> Result<(), DynErr> {
     let mut machine = Machine::new();
     let mut mem_index = 0;
 
-    machine.define_handler(0xF0, sig_halt);
-    machine.define_handler(0xF1, log_reg_a);
-    machine.define_handler(0xF2, log_regs);
-    machine.define_handler(0xF3, mem_dump);
+    apply_signals(&mut machine);
 
     let assembler = Assembler();
 
     loop {
-        let mut input = String::new();
-        print!(">>> ");
-        stdout().flush().unwrap();
-        stdin().read_line(&mut input)?;
+        let input = get_input(">>> ");
         let input = input.trim();
 
         if input.starts_with(';') || input.is_empty() {
             continue;
         }
 
-        if input == "break" || input == "quit" {
+        if input == "break" || input == "quit" || input == "exit" {
             break;
         }
 
         if input == "restart" {
-            mem_index = reset(&mut machine, "Restarting".into());
+            println!("{}", machine.status());
+            println!("-- Restarting VM! --");
+            mem_index = 0;
+            machine = Machine::new();
             continue;
         }
 
-        let dbyte = match assembler.parse_line(String::from(input), 0) {
-            Ok(v) => v,
-            Err(e) => {
-                mem_index = reset(&mut machine, e);
-                continue;
-            }
+        if let Err(e) = process_input(&assembler, &mut machine, mem_index, input) {
+            println!("Failed: {e:?}");
+            println!("{}", machine.status());
+            println!("-- Restarting VM! --");
+            machine = Machine::new();
+            mem_index = 0;
         };
 
-        match machine.memory.write_u16(mem_index, dbyte) {
-            Ok(()) => mem_index += 2,
-            Err(e) => {
-                mem_index = reset(&mut machine, e);
-                continue;
-            }
-        };
-
-        match machine.step() {
-            Ok(()) => (),
-            Err(e) => {
-                mem_index = reset(&mut machine, e);
-                continue;
-            }
-        }
+        mem_index += 2;
     }
 
     Ok(())
