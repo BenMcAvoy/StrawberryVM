@@ -7,9 +7,10 @@ Jasm - Jam assembler
 
 Usage: jasm <program.jam> [options]
 
--i, --input  | Input file (can also just type the name rather than specifying as an argument.)
--o, --output | Output file (where to write the file to)
--r, --run    | Automatically run after compiling (won't write a file when this flag is used unless output argument is specified.)
+-i, --input   | Input file (can also just type the name rather than specifying as an argument.)
+-o, --output  | Output file (where to write the file to)
+-r, --run     | Automatically run after compiling (won't write a file when this flag is used unless output argument is specified.)
+-R, --reverse | Disassemble a binary back into Jam.
 
 Notes:
     If simply just the file name is specified or just an input flag is specified, the program will take the file stem and write out a binary file with the same file stem.
@@ -19,6 +20,8 @@ Example usages:
     jasm main.jam -o out.bin
     jasm main.jam -r
     jasm main.jam
+
+    jasm main.bin -R > dis.jam
 "
     );
 }
@@ -28,6 +31,7 @@ pub struct Arguments {
     pub input: Option<String>,
     pub output: Option<String>,
 
+    pub reverse: bool,
     pub run: bool,
 }
 
@@ -70,6 +74,10 @@ impl Arguments {
 
                 ("-r", None) | ("--run", None) => {
                     self.run = true;
+                }
+
+                ("-R", None) | ("--reverse", None) => {
+                    self.reverse = true;
                 }
 
                 _ => {

@@ -7,9 +7,11 @@ use jasm::parsing::JamParseError;
 use jasm::runner::run;
 
 use jasm::passes::pre::remove_comments_pass;
+use strawberryvm::prelude::Instruction;
 
 use std::fs::File;
 use std::io::prelude::*;
+use std::io::BufReader;
 use std::path::Path;
 use std::process::exit;
 
@@ -17,9 +19,10 @@ use std::process::exit;
 ///
 /// Usage: jasm <program.jam> [options]
 ///
-/// -i, --input  | Input file (can also just type the name rather than specifying as an argument.)
-/// -o, --output | Output file (where to write the file to)
-/// -r, --run    | Automatically run after compiling (won't write a file when this flag is used unless output argument is specified.)
+/// -i, --input   | Input file (can also just type the name rather than specifying as an argument.)
+/// -o, --output  | Output file (where to write the file to)
+/// -r, --run     | Automatically run after compiling (won't write a file when this flag is used unless output argument is specified.)
+/// -R, --reverse | Disassemble a binary back into Jam.
 ///
 /// Notes:
 ///     If simply just the file name is specified or just an input flag is specified, the program will take the file stem and write out a binary file with the same file stem.
@@ -34,6 +37,33 @@ fn main() -> Result<(), DynErr> {
     args.populate_args();
 
     let assembler = Assembler();
+
+    if args.reverse {
+        let file = File::open(Path::new(&args.input.clone().unwrap()))
+            .map_err(|x| format!("Failed to open: {x}"))?;
+
+        let mut reader = BufReader::new(file);
+        let mut program: Vec<u8> = Vec::new();
+
+        reader
+            .read_to_end(&mut program)
+            .map_err(|x| format!("read: {}", x))?;
+
+        let mut index = 0;
+
+        while index < program.len() {
+            if index + 2 <= program.len() {
+                let value = u16::from_le_bytes([program[index], program[index + 1]]);
+                let instruction = Instruction::try_from(value)?;
+                println!("{}", instruction);
+                index += 2;
+            } else {
+                return Err("Incomplete data for instruction decoding.".into());
+            }
+        }
+
+        exit(0)
+    }
 
     if let Some(input) = args.input {
         if let Ok(mut file) = File::open(&input) {
@@ -55,7 +85,7 @@ fn main() -> Result<(), DynErr> {
                 },
             };
 
-            match bytes {
+            let bytes = match bytes {
                 Ok(v) => v,
                 Err(jam_error) => match *jam_error {
                     JamParseError::InvalidOpCode(violation, line) => {
