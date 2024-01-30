@@ -11,6 +11,7 @@ use jasm::passes::pre::remove_comments_pass;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::process::exit;
 
 /// Jasm - Jam assembler
 ///
@@ -41,7 +42,40 @@ fn main() -> Result<(), DynErr> {
                 .expect("Failed to read file");
 
             let lines: Vec<String> = contents.lines().map(String::from).collect();
-            let bytes = assembler.parse_vec(&lines)?;
+            let bytes = assembler.parse_vec(&lines);
+
+            let bytes = match bytes {
+                Ok(v) => Ok(v),
+                Err(e) => match e.downcast::<JamParseError>() {
+                    Ok(v) => Err(v),
+                    Err(e) => {
+                        eprintln!("{e}");
+                        exit(1);
+                    }
+                },
+            };
+
+            match bytes {
+                Ok(v) => v,
+                Err(jam_error) => match *jam_error {
+                    JamParseError::InvalidOpCode(violation, line) => {
+                        println!("Unknown opcode violation `{violation}` at line {line}");
+
+                        // We know this line exists, unwrapping is fine.
+                        let violating_line = lines.get(line - 1).unwrap();
+
+                        println!("\n{violating_line}");
+                        let line_width = violating_line.len();
+                        println!("{:~<line_width$}", "");
+                        exit(1);
+                    }
+
+                    _ => {
+                        eprintln!("{jam_error}");
+                        exit(1);
+                    }
+                },
+            };
 
             let lines: Vec<String> = lines
                 .iter()
