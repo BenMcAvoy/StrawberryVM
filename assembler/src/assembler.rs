@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::helpers::assert_length;
 use crate::helpers::split_u16;
 use crate::helpers::DynErr;
@@ -7,7 +9,6 @@ use crate::parsing::JamParseError;
 use crate::passes::*;
 
 use crate::parsing::parse_numeric;
-use crate::parsing::parse_register;
 
 use strawberryvm::prelude::*;
 
@@ -70,18 +71,18 @@ impl Assembler {
             }
 
             OpCode::AddReg => {
-                let (r1, r2) = (parse_register(parts[1])?, parse_register(parts[2])?);
+                let (r1, r2) = (Register::from_str(parts[1])?, Register::from_str(parts[2])?);
                 Ok(Instruction::AddReg(r1, r2))
             }
 
             OpCode::PopReg => {
                 assert_length(parts, 2)?;
-                Ok(Instruction::PopReg(parse_register(parts[1])?))
+                Ok(Instruction::PopReg(Register::from_str(parts[1])?))
             }
 
             OpCode::PushReg => {
                 assert_length(parts, 2)?;
-                Ok(Instruction::PushReg(parse_register(parts[1])?))
+                Ok(Instruction::PushReg(Register::from_str(parts[1])?))
             }
 
             OpCode::Signal => {

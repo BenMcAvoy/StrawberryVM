@@ -37,25 +37,6 @@ pub fn parse_numeric(s: &str) -> Result<u8, Box<dyn std::error::Error>> {
     Ok(u8::from_str_radix(num, radix)?)
 }
 
-// NOTE: Very good candidate for derive macro.
-/// Used to parse a register from a string into an actual
-/// register than can be encoded into binary
-pub fn parse_register(s: &str) -> Result<Register, Box<dyn std::error::Error>> {
-    let s = s.to_lowercase();
-
-    match s.as_str() {
-        "a" => Ok(Register::A),
-        "b" => Ok(Register::B),
-        "c" => Ok(Register::C),
-        "m" => Ok(Register::M),
-        "sp" => Ok(Register::SP),
-        "pc" => Ok(Register::PC),
-        "bp" => Ok(Register::BP),
-        "fl" => Ok(Register::FL),
-        _ => Err(format!("Unknown register {s}").into()),
-    }
-}
-
 pub fn validate_line(line: &str, index: usize) -> Result<(), JamParseError> {
     let opcode = match line.split_whitespace().next() {
         Some(v) => v,
