@@ -38,7 +38,11 @@ fn get_type_name(ty: &syn::Type) -> String {
 fn variant_opcode_value(v: &syn::Variant) -> u8 {
     for attr in v.attrs.iter() {
         if attr.path().is_ident("opcode") {
-            return attr.parse_args::<syn::LitInt>().unwrap().base10_parse().unwrap();
+            return attr
+                .parse_args::<syn::LitInt>()
+                .unwrap()
+                .base10_parse()
+                .unwrap();
         }
     }
 
@@ -103,7 +107,7 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
                 panic!("Unknown fields type for ident {name}");
             }
         })
-    .collect();
+        .collect();
 
     let field_u16_decodings: Vec<_> = ast
         .variants
@@ -151,7 +155,7 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
                 panic!("Unknown fields type for ident {name}");
             }
         })
-    .collect();
+        .collect();
 
     let field_to_string: Vec<_> = ast
         .variants
@@ -193,7 +197,7 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
                 panic!("Unknown fields type for ident {name}");
             }
         })
-    .collect();
+        .collect();
 
     quote! {
         #[repr(u8)]
@@ -312,6 +316,40 @@ pub fn derive_display(input: proc_macro::TokenStream) -> proc_macro::TokenStream
                 };
 
                 write!(f, "{string}")
+            }
+        }
+    };
+
+    proc_macro::TokenStream::from(expanded)
+}
+
+/// Automatically implements the from u8 trait
+/// for ease of use
+#[proc_macro_derive(FromStr)]
+pub fn derive_from_str(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = input.ident;
+    let variants = if let syn::Data::Enum(data) = input.data {
+        data.variants
+    } else {
+        panic!("FromStr can only be derived for enums");
+    };
+
+    let variant_names: Vec<_> = variants
+        .iter()
+        .map(|v| &v.ident)
+        .collect();
+
+    let expanded = quote! {
+        impl std::str::FromStr for #name {
+            type Err = String;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                let item = s.to_uppercase();
+                Ok(match item.as_str() {
+                    #(stringify!(#variant_names) => Self::#variant_names,)*
+                    _ => return Err("Invalid value".into()),
+                })
             }
         }
     };
