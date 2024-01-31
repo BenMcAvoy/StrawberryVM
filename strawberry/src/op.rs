@@ -1,5 +1,4 @@
 use crate::register::Register;
-
 use strawberryvm_derive::VmInstruction;
 
 /// All instructions for the VM. They are automatically
@@ -22,6 +21,11 @@ pub enum Instruction {
     AddStack,
     #[opcode(0x5)]
     AddReg(Register, Register),
+
+    #[opcode(0x40)]
+    IfZero(Register),
+    #[opcode(0x41)]
+    BranchImm(i8),
 
     // Host communication
     #[opcode(0x6)]

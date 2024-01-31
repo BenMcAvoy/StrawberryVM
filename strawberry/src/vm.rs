@@ -1,4 +1,5 @@
 use crate::op::Instruction;
+use crate::prelude::Flag;
 use crate::register::Register;
 use std::collections::HashMap;
 
@@ -127,6 +128,14 @@ impl Machine {
             .map(Ok)?
     }
 
+    fn set_flag(&mut self, flag: Flag) {
+        self.registers[Register::FL as usize] |= flag as u16;
+    }
+
+    const fn test_flag(&self, flag: Flag) -> bool {
+        (self.registers[Register::FL as usize] & (flag as u16)) != 0
+    }
+
     /// Used to step the machine forward, can be called by a
     /// virtual "clock" to simulate cpu cycles.
     ///
@@ -167,6 +176,23 @@ impl Machine {
                 Ok(())
             }
 
+            Instruction::BranchImm(a) => {
+                if self.test_flag(Flag::Compare) {
+                    self.registers[Register::PC as usize] = pc.wrapping_add_signed(i16::from(a));
+                }
+
+                Ok(())
+            }
+
+            Instruction::IfZero(reg) => {
+                if self.registers[reg as usize] == 0 {
+                    self.set_flag(Flag::Compare);
+                }
+
+                Ok(())
+            }
+
+            // Instruction::BranchImm(_) => todo!(),
             Instruction::Signal(signal) => {
                 self.signal_handlers
                     .get(&signal)
