@@ -64,153 +64,38 @@ fn variant_opcode_value(v: &syn::Variant) -> u8 {
 }
 
 fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
-    let field_u16_encodings: Vec<_> = ast
+    let mut field_encodings = Vec::new();
+    let mut field_decodings = Vec::new();
+    let mut field_to_string = Vec::new();
+    let mut field_from_str = Vec::new();
+
+    for x in ast
         .variants
-        .iter()
-        .map(|x| {
+        .iter() {
             let name = &x.ident;
             let opcode = variant_opcode_value(x);
 
             if let syn::Fields::Unit = &x.fields {
-                return quote! {
+                field_encodings.push(quote! {
                     Self::#name => #opcode as u16
-                };
-            }
+                });
 
-            if let syn::Fields::Unnamed(fields) = &x.fields {
-                let types: Vec<_> = fields
-                    .unnamed
-                    .iter()
-                    .map(|f| get_type_name(&f.ty))
-                    .collect();
+                field_decodings.push(quote! {
+                    #opcode => Ok(Self::#name)
+                });
 
-                let types: Vec<&str> = types.iter().map(AsRef::as_ref).collect();
-
-                match types[..] {
-                    ["u8"] => quote! {
-                        Self::#name(u) => #opcode as u16 | ((*u as u16) << 8)
-                    },
-
-                    ["Register"] => quote! {
-                        Self::#name(r) => #opcode as u16 | ((*r as u16) & 0xf) << 8
-                    },
-
-                    ["Register", "Register"] => quote! {
-                        Self::#name(r1, r2) => #opcode as u16 | ((*r1 as u16) & 0xf) << 8
-                            | ((*r2 as u16) & 0xf) << 12
-                    },
-
-                    _ => panic!("Invalid types {types:?}"),
-                }
-            } else {
-                panic!("Unknown fields type for ident {name}");
-            }
-        })
-        .collect();
-
-    let field_u16_decodings: Vec<_> = ast
-        .variants
-        .iter()
-        .map(|x| {
-            let value = variant_opcode_value(x);
-            let name = &x.ident;
-
-            if let syn::Fields::Unit = &x.fields {
-                return quote! {
-                    #value => Ok(Self::#name)
-                };
-            }
-
-            if let syn::Fields::Unnamed(fields) = &x.fields {
-                let types: Vec<_> = fields
-                    .unnamed
-                    .iter()
-                    .map(|f| get_type_name(&f.ty))
-                    .collect();
-
-                let types: Vec<&str> = types.iter().map(AsRef::as_ref).collect();
-
-                match types[..] {
-                    ["u8"] => quote! {
-                        #value => Ok(Self::#name(((ins & 0xff00) >> 8) as u8))
-                    },
-
-                    ["Register"] => quote! {
-                        #value => Ok(Self::#name(Register::from(((ins & 0xf00) >> 8) as u8)))
-                    },
-
-                    ["Register", "Register"] => quote! {
-                        #value => {
-                            let r1 = Register::from(((ins & 0xf00) >> 8) as u8);
-                            let r2 = Register::from(((ins & 0xf000) >> 12) as u8);
-
-                            Ok(Self::#name(r1, r2))
-                        }
-                    },
-
-                    _ => panic!("Invalid types {types:?}"),
-                }
-            } else {
-                panic!("Unknown fields type for ident {name}");
-            }
-        })
-        .collect();
-
-    let field_to_string: Vec<_> = ast
-        .variants
-        .iter()
-        .map(|x| {
-            let name = &x.ident;
-
-            if let syn::Fields::Unit = &x.fields {
-                return quote! {
+                field_to_string.push(quote! {
                     Self::#name => write!(f, stringify!(#name))
-                };
-            }
+                });
 
-            if let syn::Fields::Unnamed(fields) = &x.fields {
-                let types: Vec<_> = fields
-                    .unnamed
-                    .iter()
-                    .map(|f| get_type_name(&f.ty))
-                    .collect();
-
-                let types: Vec<&str> = types.iter().map(AsRef::as_ref).collect();
-
-                match types[..] {
-                    ["u8"] => quote! {
-                        Self::#name(byte) => write!(f, "{} {}", stringify!(#name), byte)
-                    },
-
-                    ["Register"] => quote! {
-                        Self::#name(r) => write!(f, "{} {}", stringify!(#name), r)
-                    },
-
-                    ["Register", "Register"] => quote! {
-                        Self::#name(r1, r2) => write!(f, "{} {} {}", stringify!(#name), r1, r2)
-                    },
-
-                    _ => panic!("Invalid types {types:?}"),
-                }
-            } else {
-                panic!("Unknown fields type for ident {name}");
-            }
-        })
-        .collect();
-
-    let field_from_str: Vec<_> = ast
-        .variants
-        .iter()
-        .map(|x| {
-            let name = &x.ident;
-
-            if let syn::Fields::Unit = &x.fields {
-                return quote! {
+                field_from_str.push(quote! {
                     stringify!(#name) => {
                         Instruction::assert_length(&parts, 1).map_err(|x| Self::Err::Fail(x.to_string()))?;
                         Ok(Self::#name)
                     }
-                };
+                });
+
+                continue;
             }
 
             if let syn::Fields::Unnamed(fields) = &x.fields {
@@ -223,38 +108,86 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
                 let types: Vec<&str> = types.iter().map(AsRef::as_ref).collect();
 
                 match types[..] {
-                    ["u8"] => quote! {
-                        stringify!(#name) => {
-                            Instruction::assert_length(&parts, 2).map_err(|x| Self::Err::Fail(x.to_string()))?;
-                            Ok(Self::#name(Self::parse_numeric(parts[1]).map_err(|x| Self::Err::Fail(x.to_string()))?))
-                        }
-                    },
+                    ["u8"] => {
+                        field_encodings.push(quote! {
+                            Self::#name(u) => #opcode as u16 | ((*u as u16) << 8)
+                        });
 
-                    ["Register"] => quote! {
+                        field_decodings.push(quote! {
+                            #opcode => Ok(Self::#name(((ins & 0xff00) >> 8) as u8))
+                        });
+
+                        field_to_string.push(quote! {
+                            Self::#name(b) => write!(f, "{} {}", stringify!(#name), b)
+                        });
+
+                        field_from_str.push(quote! {
+                            stringify!(#name) => {
+                                Instruction::assert_length(&parts, 2).map_err(|x| Self::Err::Fail(x.to_string()))?;
+
+                                Ok(Self::#name(Self::parse_numeric(parts[1]).map_err(|x| Self::Err::Fail(x.to_string()))?))
+                            }
+                        });
+                    }
+
+                    ["Register"] => {
+                        field_encodings.push(quote! {
+                            Self::#name(r) => #opcode as u16 | (((*r as u16)&0xf) << 8)
+                        });
+
+                        field_decodings.push(quote! {
+                            #opcode => Ok(Self::#name(Register::from(((ins & 0xf00) >> 8) as u8)))
+                        });
+
+                        field_to_string.push(quote! {
+                            Self::#name(r) => write!(f, "{} {}", stringify!(#name), r)
+                        });
+
+                        field_from_str.push(quote! {
                             stringify!(#name) => {
                                 Instruction::assert_length(&parts, 2).map_err(|x| Self::Err::Fail(x.to_string()))?;
                                 Ok(Self::#name(Register::from_str(parts[1]).map_err(|x| Self::Err::Fail(x.to_string()))?))
                             }
-                    },
+                        })
+                    }
 
-                    ["Register", "Register"] => quote! {
-                        stringify!(#name) => {
-                            Instruction::assert_length(&parts, 3).map_err(|x| Self::Err::Fail(x.to_string()))?;
+                    ["Register", "Register"] => {
+                        field_encodings.push(quote! {
+                            Self::#name(r1, r2) => #opcode as u16 | (((*r1 as u16) & 0xf) << 8)
+                                | (((*r2 as u16) & 0xf) << 12)
+                        });
 
-                            Ok(Self::#name(
-                                Register::from_str(parts[1]).map_err(|x| Self::Err::Fail(x.to_string()))?,
-                                Register::from_str(parts[2]).map_err(|x| Self::Err::Fail(x.to_string()))?)
-                            )
-                        }
-                    },
+                        field_decodings.push(quote! {
+                            #opcode => {
+                                let r1 = (ins & 0xf00) >> 8;
+                                let r2 = (ins & 0xf000) >> 12;
 
-                    _ => panic!("Invalid types {types:?}"),
+                                Ok(Self::#name(Register::from(r1 as u8), Register::from(r2 as u8)))
+                            }
+                        });
+
+                        field_to_string.push(quote! {
+                            Self::#name(r1, r2) => write!(f, "{} {} {}", stringify!(#name), r1, r2)
+                        });
+
+                        field_from_str.push(quote! {
+                            stringify!(#name) => {
+                                Instruction::assert_length(&parts, 3).map_err(|x| Self::Err::Fail(x.to_string()))?;
+
+                                Ok(Self::#name(
+                                    Register::from_str(parts[1]).map_err(|x| Self::Err::Fail(x.to_string()))?,
+                                    Register::from_str(parts[2]).map_err(|x| Self::Err::Fail(x.to_string()))?
+                                ))
+                            }
+                        });
+                    }
+
+                    _ => panic!("Invalid types {types:?}")
                 }
             } else {
-                panic!("Unknown fields type for ident {name}")
+                panic!("Unknown fields type for ident {name}");
             }
-        })
-        .collect();
+    };
 
     quote! {
         impl TryFrom<u16> for Instruction {
@@ -264,7 +197,7 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
                 let op = (ins & 0xff) as u8;
 
                 match op {
-                    #(#field_u16_decodings,)*
+                    #(#field_decodings,)*
                     _ => panic!("Invalid types"),
                 }
             }
@@ -298,7 +231,7 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
         impl Instruction {
             pub fn encode_u16(&self) -> u16 {
                 match self {
-                    #(#field_u16_encodings,)*
+                    #(#field_encodings,)*
                 }
             }
 
