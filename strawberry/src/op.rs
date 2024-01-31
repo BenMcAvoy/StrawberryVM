@@ -1,5 +1,4 @@
 use crate::register::Register;
-use std::str::FromStr;
 
 use strawberryvm_derive::VmInstruction;
 
@@ -27,4 +26,26 @@ pub enum Instruction {
     // Host communication
     #[opcode(0x6)]
     Signal(u8),
+}
+
+#[derive(Debug)]
+pub enum InstructionParseError {
+    NoContent,
+    Fail(String),
+}
+
+impl std::error::Error for InstructionParseError {}
+
+impl std::fmt::Display for InstructionParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::NoContent => {
+                write!(f, "No content.")
+            }
+
+            Self::Fail(message) => {
+                write!(f, "Error {message}")
+            }
+        }
+    }
 }
