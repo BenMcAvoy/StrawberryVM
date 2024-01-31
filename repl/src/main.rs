@@ -9,14 +9,13 @@ use crate::helpers::get_input;
 mod helpers;
 
 fn process_input(
-    assembler: &Assembler,
     machine: &mut Machine,
     mem_index: u16,
-    input: &str,
+    dbyte: u16,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let dbyte = assembler.parse_line(String::from(input), 0)?;
     machine.memory.write_u16(mem_index, dbyte)?;
     machine.step()?;
+
     Ok(())
 }
 
@@ -48,7 +47,15 @@ fn main() -> Result<(), DynErr> {
             continue;
         }
 
-        if let Err(e) = process_input(&assembler, &mut machine, mem_index, input) {
+        let dbyte = match assembler.parse_line(String::from(input), 0) {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("Error: {e}");
+                continue;
+            }
+        };
+
+        if let Err(e) = process_input(&mut machine, mem_index, dbyte) {
             println!("Failed: {e}");
             println!("{}", machine.status());
             println!("-- Restarting VM! --");
