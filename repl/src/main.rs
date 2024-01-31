@@ -1,6 +1,6 @@
-use jasm::signals::apply_signals;
 use jasm::assembler::Assembler;
 use jasm::helpers::DynErr;
+use jasm::signals::apply_signals;
 
 use strawberryvm::prelude::*;
 
@@ -49,7 +49,7 @@ fn main() -> Result<(), DynErr> {
         }
 
         if let Err(e) = process_input(&assembler, &mut machine, mem_index, input) {
-            println!("Failed: {e:?}");
+            println!("Failed: {e}");
             println!("{}", machine.status());
             println!("-- Restarting VM! --");
             machine = Machine::new();

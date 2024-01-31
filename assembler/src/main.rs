@@ -89,10 +89,13 @@ fn main() -> Result<(), DynErr> {
                 Ok(v) => v,
                 Err(jam_error) => match *jam_error {
                     JamParseError::InvalidOpCode(violation, line) => {
-                        println!("Unknown opcode violation `{violation}` at line {line}");
+                        println!(
+                            "Unknown opcode violation `{violation}` at line {}",
+                            line + 1
+                        );
 
                         // We know this line exists, unwrapping is fine.
-                        let violating_line = lines.get(line - 1).unwrap();
+                        let violating_line = lines.get(line).unwrap();
 
                         println!("\n{violating_line}");
                         let line_width = violating_line.len();

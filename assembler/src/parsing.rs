@@ -1,6 +1,7 @@
-use std::{error::Error, str::FromStr};
+use std::error::Error;
+use std::str::FromStr;
 
-use strawberryvm::prelude::*;
+use strawberryvm::prelude::{Instruction, InstructionParseError};
 
 #[derive(Debug)]
 pub enum JamParseError {
@@ -38,16 +39,13 @@ pub fn parse_numeric(s: &str) -> Result<u8, Box<dyn std::error::Error>> {
 }
 
 pub fn validate_line(line: &str, index: usize) -> Result<(), JamParseError> {
-    let opcode = match line.split_whitespace().next() {
-        Some(v) => v,
-        None => return Err(JamParseError::InvalidOpCode(line.to_string(), index)),
-    };
-
-    if OpCode::from_str(opcode).is_err() {
-        return Err(JamParseError::InvalidOpCode(opcode.to_string(), index + 1));
+    match Instruction::from_str(line) {
+        Err(InstructionParseError::NoContent) => Err(JamParseError::Empty(index)),
+        Err(InstructionParseError::Fail(message)) => {
+            Err(JamParseError::InvalidOpCode(message, index))
+        }
+        Ok(_) => Ok(()),
     }
-
-    Ok(())
 }
 
 pub fn validate_jam(lines: &[String]) -> Result<(), JamParseError> {
