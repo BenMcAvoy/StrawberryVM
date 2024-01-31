@@ -69,125 +69,150 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
     let mut field_to_string = Vec::new();
     let mut field_from_str = Vec::new();
 
-    for x in ast
-        .variants
-        .iter() {
-            let name = &x.ident;
-            let opcode = variant_opcode_value(x);
+    for x in ast.variants.iter() {
+        let name = &x.ident;
+        let opcode = variant_opcode_value(x);
 
-            if let syn::Fields::Unit = &x.fields {
-                field_encodings.push(quote! {
-                    Self::#name => #opcode as u16
-                });
+        if let syn::Fields::Unit = &x.fields {
+            field_encodings.push(quote! {
+                Self::#name => #opcode as u16
+            });
 
-                field_decodings.push(quote! {
-                    #opcode => Ok(Self::#name)
-                });
+            field_decodings.push(quote! {
+                #opcode => Ok(Self::#name)
+            });
 
-                field_to_string.push(quote! {
-                    Self::#name => write!(f, stringify!(#name))
-                });
+            field_to_string.push(quote! {
+                Self::#name => write!(f, stringify!(#name))
+            });
 
-                field_from_str.push(quote! {
+            field_from_str.push(quote! {
                     stringify!(#name) => {
                         Instruction::assert_length(&parts, 1).map_err(|x| Self::Err::Fail(x.to_string()))?;
                         Ok(Self::#name)
                     }
                 });
 
-                continue;
-            }
+            continue;
+        }
 
-            if let syn::Fields::Unnamed(fields) = &x.fields {
-                let types: Vec<_> = fields
-                    .unnamed
-                    .iter()
-                    .map(|f| get_type_name(&f.ty))
-                    .collect();
+        if let syn::Fields::Unnamed(fields) = &x.fields {
+            let types: Vec<_> = fields
+                .unnamed
+                .iter()
+                .map(|f| get_type_name(&f.ty))
+                .collect();
 
-                let types: Vec<&str> = types.iter().map(AsRef::as_ref).collect();
+            let types: Vec<&str> = types.iter().map(AsRef::as_ref).collect();
 
-                match types[..] {
-                    ["u8"] => {
-                        field_encodings.push(quote! {
-                            Self::#name(u) => #opcode as u16 | ((*u as u16) << 8)
-                        });
+            match types[..] {
+                ["u8"] => {
+                    field_encodings.push(quote! {
+                        Self::#name(u) => #opcode as u16 | ((*u as u16) << 8)
+                    });
 
-                        field_decodings.push(quote! {
-                            #opcode => Ok(Self::#name(((ins & 0xff00) >> 8) as u8))
-                        });
+                    field_decodings.push(quote! {
+                        #opcode => Ok(Self::#name(((ins & 0xff00) >> 8) as u8))
+                    });
 
-                        field_to_string.push(quote! {
-                            Self::#name(b) => write!(f, "{} {}", stringify!(#name), b)
-                        });
+                    field_to_string.push(quote! {
+                        Self::#name(b) => write!(f, "{} {}", stringify!(#name), b)
+                    });
 
-                        field_from_str.push(quote! {
+                    field_from_str.push(quote! {
                             stringify!(#name) => {
                                 Instruction::assert_length(&parts, 2).map_err(|x| Self::Err::Fail(x.to_string()))?;
 
                                 Ok(Self::#name(Self::parse_numeric(parts[1]).map_err(|x| Self::Err::Fail(x.to_string()))?))
                             }
                         });
-                    }
+                }
 
-                    ["Register"] => {
-                        field_encodings.push(quote! {
-                            Self::#name(r) => #opcode as u16 | (((*r as u16)&0xf) << 8)
+                ["i8"] => {
+                    field_encodings.push(quote! {
+                        Self::#name(u) => {
+                            let raw_value = u.to_le_bytes();
+                            #opcode as u16 | ((raw_value[0] as u16) << 8)
+                        }
+                    });
+
+                    field_decodings.push(quote! {
+                        #opcode => {
+                            let raw_value = i8::from_le_bytes([((ins & 0xff00) >> 8) as u8]);
+                            Ok(Self::#name(raw_value))
+                        }
+                    });
+
+                    field_to_string.push(quote! {
+                        Self::#name(b) => write!(f, "{} {}", stringify!(#name), b)
+                    });
+
+                    field_from_str.push(quote! {
+                            stringify!(#name) => {
+                                Instruction::assert_length(&parts, 2).map_err(|x| Self::Err::Fail(x.to_string()))?;
+                                Ok(Self::#name(Self::parse_numeric_signed(parts[1]).map_err(|x| Self::Err::Fail(x.to_string()))?))
+                            }
                         });
+                }
 
-                        field_decodings.push(quote! {
-                            #opcode => Ok(Self::#name(Register::from(((ins & 0xf00) >> 8) as u8)))
-                        });
+                ["Register"] => {
+                    field_encodings.push(quote! {
+                        Self::#name(r) => #opcode as u16 | (((*r as u16)&0xf) << 8)
+                    });
 
-                        field_to_string.push(quote! {
-                            Self::#name(r) => write!(f, "{} {}", stringify!(#name), r)
-                        });
+                    field_decodings.push(quote! {
+                        #opcode => Ok(Self::#name(Register::from(((ins & 0xf00) >> 8) as u8)))
+                    });
 
-                        field_from_str.push(quote! {
+                    field_to_string.push(quote! {
+                        Self::#name(r) => write!(f, "{} {}", stringify!(#name), r)
+                    });
+
+                    field_from_str.push(quote! {
                             stringify!(#name) => {
                                 Instruction::assert_length(&parts, 2).map_err(|x| Self::Err::Fail(x.to_string()))?;
                                 Ok(Self::#name(Register::from_str(parts[1]).map_err(|x| Self::Err::Fail(x.to_string()))?))
                             }
                         })
-                    }
+                }
 
-                    ["Register", "Register"] => {
-                        field_encodings.push(quote! {
-                            Self::#name(r1, r2) => #opcode as u16 | (((*r1 as u16) & 0xf) << 8)
-                                | (((*r2 as u16) & 0xf) << 12)
-                        });
+                ["Register", "Register"] => {
+                    field_encodings.push(quote! {
+                        Self::#name(r1, r2) => #opcode as u16 | (((*r1 as u16) & 0xf) << 8)
+                            | (((*r2 as u16) & 0xf) << 12)
+                    });
 
-                        field_decodings.push(quote! {
-                            #opcode => {
-                                let r1 = (ins & 0xf00) >> 8;
-                                let r2 = (ins & 0xf000) >> 12;
+                    field_decodings.push(quote! {
+                        #opcode => {
+                            let r1 = (ins & 0xf00) >> 8;
+                            let r2 = (ins & 0xf000) >> 12;
 
-                                Ok(Self::#name(Register::from(r1 as u8), Register::from(r2 as u8)))
-                            }
-                        });
+                            Ok(Self::#name(Register::from(r1 as u8), Register::from(r2 as u8)))
+                        }
+                    });
 
-                        field_to_string.push(quote! {
-                            Self::#name(r1, r2) => write!(f, "{} {} {}", stringify!(#name), r1, r2)
-                        });
+                    field_to_string.push(quote! {
+                        Self::#name(r1, r2) => write!(f, "{} {} {}", stringify!(#name), r1, r2)
+                    });
 
-                        field_from_str.push(quote! {
+                    field_from_str.push(quote! {
                             stringify!(#name) => {
                                 Instruction::assert_length(&parts, 3).map_err(|x| Self::Err::Fail(x.to_string()))?;
 
                                 Ok(Self::#name(
-                                    Register::from_str(parts[1]).map_err(|x| Self::Err::Fail(x.to_string()))?,
-                                    Register::from_str(parts[2]).map_err(|x| Self::Err::Fail(x.to_string()))?
-                                ))
+                                        Register::from_str(parts[1]).map_err(|x| Self::Err::Fail(x.to_string()))?,
+                                        Register::from_str(parts[2]).map_err(|x| Self::Err::Fail(x.to_string()))?
+                                        ))
                             }
                         });
-                    }
-
-                    _ => panic!("Invalid types {types:?}")
                 }
-            } else {
-                panic!("Unknown fields type for ident {name}");
+
+                _ => panic!("Invalid types {types:?}"),
             }
-    };
+        } else {
+            panic!("Unknown fields type for ident {name}");
+        }
+    }
 
     quote! {
         impl TryFrom<u16> for Instruction {
@@ -235,17 +260,28 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
                 }
             }
 
-            /// Used to parse a numeric based on whether it is binary,
-            /// decimal, or hexadecimal.
+            fn extract_num_and_radix(s: &str) -> (&str, u32) {
+    let first = s.chars().next().unwrap();
+    match first {
+        '$' | '%' => (&s[1..], 16),
+        '%' => (&s[1..], 2),
+        _ => (s, 10),
+    }
+}
+
+
+            /// Used to parse a numeric that is unsigned.
             pub fn parse_numeric(s: &str) -> Result<u8, Box<dyn std::error::Error>> {
-                let first = s.chars().next().unwrap();
-                let (num, radix) = match first {
-                    '$' => (&s[1..], 16),
-                    '%' => (&s[1..], 2),
-                    _ => (s, 10),
-                };
+                let (num, radix) = Self::extract_num_and_radix(s);
 
                 Ok(u8::from_str_radix(num, radix)?)
+            }
+
+            /// Used to parse a numeric that is signed.
+            pub fn parse_numeric_signed(s: &str) -> Result<i8, Box<dyn std::error::Error>> {
+                let (num, radix) = Self::extract_num_and_radix(s);
+
+                Ok(i8::from_str_radix(num, radix).map_err(|x| format!("{}", x))?)
             }
 
             pub fn assert_length(parts: &[&str], n: usize) -> Result<(), Box<dyn std::error::Error>> {
