@@ -27,7 +27,7 @@
 - [x] Loading from a file
 - [x] Text to binary
 - [x] Assembler
-- [ ] Refactoring
+- [x] Refactoring
 - [ ] Turing completion
 
 ## Instructions
