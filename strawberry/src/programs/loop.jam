@@ -1,10 +1,19 @@
-push 2
-push 2
+LoadSPImm $FF ; Move the stack pointer out of the way of the program
+LoadBImm 5    ; How many times to loop
 
-print:
-  signal $F2
+PushReg A     ; Push our current index onto the stack
+PushReg B     ; Push the target index onto the stack
 
-jmp ^print
+SubStack      ; Find the difference of our index and the target
+PopReg C      ; Store the resulting difference in C
 
-; Quit
-signal $F0
+IncReg A      ; Increment our index
+
+IfZero C      ; If our difference is 0, we have finished
+BranchImm 8   ; We should jump out of the loop
+
+Signal $F1    ; Print out current index
+IfNotZero C   ; If our difference is not zero
+BranchImm -18 ; Jump back to the start of the loop
+
+Signal $F0    ; Quit the program (we jump here when done)
