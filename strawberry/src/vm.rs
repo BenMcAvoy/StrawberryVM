@@ -22,6 +22,7 @@ pub struct Machine {
 
     signal_handlers: HashMap<u8, SignalFunction>,
 
+    pub debug: bool,
     pub machine_halted: bool,
 }
 
@@ -42,6 +43,8 @@ impl Machine {
 
             signal_handlers: HashMap::new(),
             machine_halted: false,
+
+            debug: false,
         }
     }
 
@@ -155,7 +158,9 @@ impl Machine {
         let instruction = self.memory.read_u16(pc)?;
         let op = Instruction::try_from(instruction)?;
 
-        println!("{pc:0>4} │ Got instruction `{op}`");
+        if self.debug {
+            println!("{pc:0>4} │ Got instruction `{op}`");
+        }
 
         match op {
             Instruction::Nop => Ok(()),
