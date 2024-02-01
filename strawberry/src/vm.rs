@@ -128,8 +128,12 @@ impl Machine {
             .map(Ok)?
     }
 
-    fn set_flag(&mut self, flag: Flag) {
-        self.registers[Register::FL as usize] |= flag as u16;
+    fn set_flag(&mut self, flag: Flag, set: bool) {
+        if set {
+            self.registers[Register::FL as usize] |= flag as u16;
+        } else {
+            self.registers[Register::FL as usize] &= !(flag as u16);
+        }
     }
 
     const fn test_flag(&self, flag: Flag) -> bool {
@@ -145,6 +149,7 @@ impl Machine {
     /// It can also fail if a signal is non-existant.
     /// It can also fail if the instruction is invalid.
     pub fn step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        // sleep(Duration::from_millis(100));
         let pc = self.registers[Register::PC as usize];
         self.registers[Register::PC as usize] += 2;
         let instruction = self.memory.read_u16(pc)?;
@@ -164,6 +169,26 @@ impl Machine {
 
             Instruction::PushReg(r) => self.push(self.registers[r as usize]),
 
+            Instruction::LoadAImm(val) => {
+                self.registers[Register::A as usize] = u16::from(val);
+                Ok(())
+            }
+
+            Instruction::LoadBImm(val) => {
+                self.registers[Register::B as usize] = u16::from(val);
+                Ok(())
+            }
+
+            Instruction::LoadCImm(val) => {
+                self.registers[Register::C as usize] = u16::from(val);
+                Ok(())
+            }
+
+            Instruction::LoadSPImm(val) => {
+                self.registers[Register::SP as usize] = u16::from(val);
+                Ok(())
+            }
+
             Instruction::AddStack => {
                 let a = self.pop()?;
                 let b = self.pop()?;
@@ -176,6 +201,23 @@ impl Machine {
                 Ok(())
             }
 
+            Instruction::SubStack => {
+                let a = self.pop()?;
+                let b = self.pop()?;
+
+                self.push(a - b)
+            }
+
+            Instruction::SubReg(r1, r2) => {
+                self.registers[r1 as usize] -= self.registers[r2 as usize];
+                Ok(())
+            }
+
+            Instruction::IncReg(reg) => {
+                self.registers[reg as usize] += 1;
+                Ok(())
+            }
+
             Instruction::BranchImm(a) => {
                 if self.test_flag(Flag::Compare) {
                     self.registers[Register::PC as usize] = pc.wrapping_add_signed(i16::from(a));
@@ -185,14 +227,15 @@ impl Machine {
             }
 
             Instruction::IfZero(reg) => {
-                if self.registers[reg as usize] == 0 {
-                    self.set_flag(Flag::Compare);
-                }
-
+                self.set_flag(Flag::Compare, self.registers[reg as usize] == 0);
                 Ok(())
             }
 
-            // Instruction::BranchImm(_) => todo!(),
+            Instruction::IfNotZero(reg) => {
+                self.set_flag(Flag::Compare, self.registers[reg as usize] != 0);
+                Ok(())
+            }
+
             Instruction::Signal(signal) => {
                 self.signal_handlers
                     .get(&signal)

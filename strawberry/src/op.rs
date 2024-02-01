@@ -7,28 +7,45 @@ use strawberryvm_derive::VmInstruction;
 #[derive(Debug, VmInstruction)]
 pub enum Instruction {
     // Miscellaneous
-    #[opcode(0x0)]
+    #[opcode(0x00)]
     Nop,
 
     // Memory management
-    #[opcode(0x1)]
+    #[opcode(0x10)]
     Push(u8),
-    #[opcode(0x2)]
+    #[opcode(0x11)]
     PopReg(Register),
-    #[opcode(0x3)]
+    #[opcode(0x12)]
     PushReg(Register),
-    #[opcode(0x4)]
-    AddStack,
-    #[opcode(0x5)]
-    AddReg(Register, Register),
+    #[opcode(0x13)]
+    LoadAImm(u8),
+    #[opcode(0x14)]
+    LoadBImm(u8),
+    #[opcode(0x13)]
+    LoadCImm(u8),
+    #[opcode(0x14)]
+    LoadSPImm(u8),
 
-    #[opcode(0x40)]
+    #[opcode(0x20)]
+    AddStack,
+    #[opcode(0x21)]
+    AddReg(Register, Register),
+    #[opcode(0x22)]
+    SubStack,
+    #[opcode(0x23)]
+    SubReg(Register, Register),
+    #[opcode(0x24)]
+    IncReg(Register),
+
+    #[opcode(0x30)]
     IfZero(Register),
-    #[opcode(0x41)]
+    #[opcode(0x31)]
+    IfNotZero(Register),
+    #[opcode(0x32)]
     BranchImm(i8),
 
     // Host communication
-    #[opcode(0x6)]
+    #[opcode(0x40)]
     Signal(u8),
 }
 
