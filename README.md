@@ -30,6 +30,9 @@
 - [x] Refactoring
 - [ ] Turing completion
 
+# What's happening with the project?
+A new release may not be made for a moment as I am currently developing a programming language for the VM. The VM project is not dropped, I am just making somthing for it that is outside of this repo! Once it is functional it may either be a submodule or simply added into this repo.
+
 ## Instructions
 | Name          | Arguments                                       | Description                                                                         |
 |---------------|-------------------------------------------------|-------------------------------------------------------------------------------------|
