@@ -22,13 +22,16 @@ mod std_traits;
 /// from traits.
 ///
 /// # Example usage
-/// ```rust
+/// ```rust,ignore
+/// use strawberryvm_derive::VmInstruction;
+///
+/// #[derive(VmInstruction)]
 /// pub enum Instruction {
 ///     #[opcode(0x0)]
-///     Nop
+///     Nop,
 ///
 ///     #[opcode(0x1)]
-///     Push(u8)
+///     Push(u8),
 /// }
 /// ```
 #[proc_macro_derive(VmInstruction, attributes(opcode))]
@@ -223,7 +226,9 @@ fn impl_opcode_struct(ast: &ItemEnum) -> TokenStream {
 
                 match op {
                     #(#field_decodings,)*
-                    _ => panic!("Invalid types"),
+                    _ => Err(format!(
+                        "Unknown opcode 0x{op:02X} when decoding instruction 0x{ins:04X}"
+                    )),
                 }
             }
         }

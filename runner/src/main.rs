@@ -1,13 +1,11 @@
-use strawberryvm::prelude::Machine;
-
 use jasm::runner::run;
-use jasm::signals::apply_signals;
 
 use std::env::{self, args};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::process::exit;
+use std::panic;
 
 fn load_program() -> Vec<u8> {
     let args: Vec<String> = env::args().collect();
@@ -33,9 +31,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         exit(1);
     }
 
-    let mut machine = Machine::new();
+    // Note: Panic hook must be `Send + Sync`, so it can't capture `Machine`.
+    panic::set_hook(Box::new(|info| {
+        eprintln!("Runtime error!");
+        eprintln!("{info}");
 
-    apply_signals(&mut machine);
+        if let Some(status) = strawberryvm::panic_report::get_last_status() {
+            eprintln!("{status}");
+        }
+    }));
 
     run(&load_program())?;
 

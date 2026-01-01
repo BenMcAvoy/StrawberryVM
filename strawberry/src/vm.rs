@@ -4,6 +4,7 @@ use crate::register::Register;
 use std::collections::HashMap;
 
 use crate::memory;
+use crate::panic_report;
 
 pub const MEMORY_KILO_BYTES: usize = 1;
 pub const REGISTER_COUNT: usize = 8;
@@ -59,7 +60,7 @@ impl Machine {
             self.get_register(Register::A),
             self.get_register(Register::B),
             self.get_register(Register::C),
-            self.get_register(Register::M),
+            self.get_register(Register::D),
         );
 
         let (sp, pc, bp) = (
@@ -156,6 +157,14 @@ impl Machine {
         let pc = self.registers[Register::PC as usize];
         self.registers[Register::PC as usize] += 2;
         let instruction = self.memory.read_u16(pc)?;
+
+        // Snapshot state for panic reporting (panic hook must be `Send + Sync`, so it
+        // can't safely capture `&Machine`).
+        panic_report::set_last_status(format!(
+            "PC: 0x{pc:04X}\nINSTR: 0x{instruction:04X}\n{}",
+            self.status()
+        ));
+
         let op = Instruction::try_from(instruction)?;
 
         if self.debug {
@@ -164,80 +173,211 @@ impl Machine {
 
         match op {
             Instruction::Nop => Ok(()),
+
             Instruction::Push(v) => self.push(u16::from(v)),
 
-            Instruction::PopReg(r) => {
-                let popped = self.pop()?;
-                self.registers[r as usize] = popped;
+            Instruction::Pop(r) => {
+                let v = self.pop()?;
+                self.registers[r as usize] = v;
                 Ok(())
             }
 
-            Instruction::PushReg(r) => self.push(self.registers[r as usize]),
+            Instruction::PushReg(r) => {
+                let v = self.registers[r as usize];
+                self.push(v)
+            }
 
-            Instruction::LoadAImm(val) => {
-                self.registers[Register::A as usize] = u16::from(val);
+            Instruction::Add(dest, src) => {
+                let (result, overflowed) = self.registers[dest as usize]
+                    .overflowing_add(self.registers[src as usize]);
+
+                self.registers[dest as usize] = result;
+
+                self.set_flag(Flag::Overflow, overflowed);
+                self.set_flag(Flag::Negative, (result & 0x8000) != 0);
+                self.set_flag(Flag::Compare, result == 0);
+
                 Ok(())
             }
 
-            Instruction::LoadBImm(val) => {
-                self.registers[Register::B as usize] = u16::from(val);
+            Instruction::Sub(dest, src) => {
+                let (result, overflowed) = self.registers[dest as usize]
+                    .overflowing_sub(self.registers[src as usize]);
+
+                self.registers[dest as usize] = result;
+
+                self.set_flag(Flag::Overflow, overflowed);
+                self.set_flag(Flag::Negative, (result & 0x8000) != 0);
+                self.set_flag(Flag::Compare, result == 0);
+
                 Ok(())
             }
 
-            Instruction::LoadCImm(val) => {
-                self.registers[Register::C as usize] = u16::from(val);
+            Instruction::Shl(dest, src) => {
+                let shift_amount = self.registers[src as usize] & 0x0F;
+                let result = self.registers[dest as usize] << shift_amount;
+
+                self.registers[dest as usize] = result;
+
+                self.set_flag(Flag::Negative, (result & 0x8000) != 0);
+                self.set_flag(Flag::Compare, result == 0);
+
                 Ok(())
             }
 
-            Instruction::LoadSPImm(val) => {
-                self.registers[Register::SP as usize] = u16::from(val);
+            Instruction::Shr(dest, src) => {
+                let shift_amount = self.registers[src as usize] & 0x0F;
+                let result = self.registers[dest as usize] >> shift_amount;
+
+                self.registers[dest as usize] = result;
+
+                self.set_flag(Flag::Negative, (result & 0x8000) != 0);
+                self.set_flag(Flag::Compare, result == 0);
+
                 Ok(())
             }
 
-            Instruction::AddStack => {
-                let a = self.pop()?;
-                let b = self.pop()?;
+            Instruction::And(dest, src) => {
+                let result = self.registers[dest as usize] & self.registers[src as usize];
 
-                self.push(a + b)
-            }
+                self.registers[dest as usize] = result;
 
-            Instruction::AddReg(r1, r2) => {
-                self.registers[r1 as usize] += self.registers[r2 as usize];
+                self.set_flag(Flag::Negative, (result & 0x8000) != 0);
+                self.set_flag(Flag::Compare, result == 0);
+
                 Ok(())
             }
 
-            Instruction::SubStack => {
-                let a = self.pop()?;
-                let b = self.pop()?;
+            Instruction::Or(dest, src) => {
+                let result = self.registers[dest as usize] | self.registers[src as usize];
 
-                self.push(a - b)
-            }
+                self.registers[dest as usize] = result;
 
-            Instruction::SubReg(r1, r2) => {
-                self.registers[r1 as usize] -= self.registers[r2 as usize];
+                self.set_flag(Flag::Negative, (result & 0x8000) != 0);
+                self.set_flag(Flag::Compare, result == 0);
+
                 Ok(())
             }
 
-            Instruction::IncReg(reg) => {
-                self.registers[reg as usize] += 1;
+            Instruction::Xor(dest, src) => {
+                let result = self.registers[dest as usize] ^ self.registers[src as usize];
+
+                self.registers[dest as usize] = result;
+
+                self.set_flag(Flag::Negative, (result & 0x8000) != 0);
+                self.set_flag(Flag::Compare, result == 0);
+
                 Ok(())
             }
 
-            Instruction::BranchImm(a) => {
-                if self.test_flag(Flag::Compare) {
-                    self.registers[Register::PC as usize] = pc.wrapping_add_signed(i16::from(a));
+            Instruction::Not(r) => {
+                let result = !self.registers[r as usize];
+
+                self.registers[r as usize] = result;
+
+                self.set_flag(Flag::Negative, (result & 0x8000) != 0);
+                self.set_flag(Flag::Compare, result == 0);
+
+                Ok(())
+            }
+
+            Instruction::Mul(dest, src) => {
+                let (result, overflowed) = self.registers[dest as usize]
+                    .overflowing_mul(self.registers[src as usize]);
+
+                self.registers[dest as usize] = result;
+
+                self.set_flag(Flag::Overflow, overflowed);
+                self.set_flag(Flag::Negative, (result & 0x8000) != 0);
+                self.set_flag(Flag::Compare, result == 0);
+
+                Ok(())
+            }
+
+            Instruction::Div(dest, src) => {
+                let divisor = self.registers[src as usize];
+                if divisor == 0 {
+                    return Err("Division by zero".into());
                 }
 
+                let result = self.registers[dest as usize] / divisor;
+
+                self.registers[dest as usize] = result;
+
+                self.set_flag(Flag::Negative, (result & 0x8000) != 0);
+                self.set_flag(Flag::Compare, result == 0);
+
                 Ok(())
             }
 
-            Instruction::IfZero(reg) => {
-                self.set_flag(Flag::Compare, self.registers[reg as usize] == 0);
+            Instruction::Mov(dest, src) => {
+                let value = self.registers[src as usize];
+                self.registers[dest as usize] = value;
                 Ok(())
             }
 
-            Instruction::IfNotZero(reg) => {
-                self.set_flag(Flag::Compare, self.registers[reg as usize] != 0);
+            Instruction::Cmp(a, b) => {
+                let val_a = self.registers[a as usize];
+                let val_b = self.registers[b as usize];
+
+                self.set_flag(Flag::Compare, val_a == val_b);
+                self.set_flag(Flag::Negative, val_a < val_b);
+                // Overflow flag is not typically set for comparisons
+
+                Ok(())
+            }
+
+            Instruction::Jmp(offset) => {
+                let pc = self.registers[Register::PC as usize];
+                let new_pc = if offset.is_negative() {
+                    pc.wrapping_sub(offset.wrapping_abs() as u16 * 2)
+                } else {
+                    pc.wrapping_add(offset as u16 * 2)
+                };
+
+                self.registers[Register::PC as usize] = new_pc;
+                Ok(())
+            }
+
+            Instruction::Je(offset) => {
+                if self.test_flag(Flag::Compare) {
+                    let pc = self.registers[Register::PC as usize];
+                    let new_pc = if offset.is_negative() {
+                        pc.wrapping_sub(offset.wrapping_abs() as u16 * 2)
+                    } else {
+                        pc.wrapping_add(offset as u16 * 2)
+                    };
+
+                    self.registers[Register::PC as usize] = new_pc;
+                }
+                Ok(())
+            }
+
+            Instruction::Jne(offset) => {
+                if !self.test_flag(Flag::Compare) {
+                    let pc = self.registers[Register::PC as usize];
+                    let new_pc = if offset.is_negative() {
+                        pc.wrapping_sub(offset.wrapping_abs() as u16 * 2)
+                    } else {
+                        pc.wrapping_add(offset as u16 * 2)
+                    };
+
+                    self.registers[Register::PC as usize] = new_pc;
+                }
+                Ok(())
+            }
+
+            Instruction::Load(dest, src) => {
+                let address = self.registers[src as usize];
+                let value = self.memory.read_u16(address)?;
+                self.registers[dest as usize] = value;
+                Ok(())
+            }
+
+            Instruction::Store(src, dest) => {
+                let address = self.registers[dest as usize];
+                let value = self.registers[src as usize];
+                self.memory.write_u16(address, value)?;
                 Ok(())
             }
 

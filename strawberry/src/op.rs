@@ -6,47 +6,33 @@ use strawberryvm_derive::VmInstruction;
 /// binary and also implements From traits.
 #[derive(Debug, VmInstruction)]
 pub enum Instruction {
-    // Miscellaneous
-    #[opcode(0x00)]
-    Nop,
+    #[opcode(0x00)] Nop,                       // No operation    
 
-    // Memory management
-    #[opcode(0x10)]
-    Push(u8),
-    #[opcode(0x11)]
-    PopReg(Register),
-    #[opcode(0x12)]
-    PushReg(Register),
-    #[opcode(0x13)]
-    LoadAImm(u8),
-    #[opcode(0x14)]
-    LoadBImm(u8),
-    #[opcode(0x13)]
-    LoadCImm(u8),
-    #[opcode(0x14)]
-    LoadSPImm(u8),
+    #[opcode(0x10)] Push(u8),                  // Push an 8-bit value onto the stack
+    #[opcode(0x11)] Pop(Register),             // Pop top of stack -> register
+    #[opcode(0x12)] PushReg(Register),         // Push register value onto stack (does not modify register)
+    #[opcode(0x13)] Mov(Register, Register),   // Copy value from second register to first
 
-    #[opcode(0x20)]
-    AddStack,
-    #[opcode(0x21)]
-    AddReg(Register, Register),
-    #[opcode(0x22)]
-    SubStack,
-    #[opcode(0x23)]
-    SubReg(Register, Register),
-    #[opcode(0x24)]
-    IncReg(Register),
+    #[opcode(0x20)] Add(Register, Register),   // Add two registers and store in the first
+    #[opcode(0x21)] Sub(Register, Register),   // Subtract two registers and store in the first
+    #[opcode(0x22)] Shl(Register, Register),   // Shift left first register by amount in second
+    #[opcode(0x23)] Shr(Register, Register),   // Shift right first register by amount in second
+    #[opcode(0x24)] And(Register, Register),   // Bitwise AND two registers and store in the first
+    #[opcode(0x25)] Or(Register, Register),    // Bitwise OR two registers and store in the first
+    #[opcode(0x26)] Xor(Register, Register),   // Bitwise XOR two registers and store in the first
+    #[opcode(0x27)] Not(Register),             // Bitwise NOT on a register
+    #[opcode(0x28)] Mul(Register, Register),   // Multiply two registers and store in the first
+    #[opcode(0x29)] Div(Register, Register),   // Divide two registers and store in the first
 
-    #[opcode(0x30)]
-    IfZero(Register),
-    #[opcode(0x31)]
-    IfNotZero(Register),
-    #[opcode(0x32)]
-    BranchImm(i8),
+    #[opcode(0x30)] Cmp(Register, Register),   // Compare two registers and set flags
+    #[opcode(0x31)] Jmp(i8),                   // Jump by signed offset
+    #[opcode(0x32)] Je(i8),                    // Jump if Compare flag is set
+    #[opcode(0x33)] Jne(i8),                   // Jump if Compare flag is not set
 
-    // Host communication
-    #[opcode(0x40)]
-    Signal(u8),
+    #[opcode(0x40)] Load(Register, Register),  // Load from memory address in second register into first
+    #[opcode(0x41)] Store(Register, Register), // Store value from first register into memory address in second
+    
+    #[opcode(0x50)] Signal(u8),                // Host call
 }
 
 #[derive(Debug)]

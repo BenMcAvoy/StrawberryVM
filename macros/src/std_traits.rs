@@ -20,7 +20,7 @@ pub fn impl_derive_from_u8(input: proc_macro::TokenStream) -> proc_macro::TokenS
             fn from(item: u8) -> Self {
                 match item {
                     #(#variant_values => #name::#variant_names,)*
-                    _ => panic!("Invalid value"),
+                    _ => panic!("Invalid value {} for {}", item, stringify!(#name)),
                 }
             }
         }

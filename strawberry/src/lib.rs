@@ -38,16 +38,19 @@
 //!     vm.define_handler(0xF0, |machine| machine.machine_halted = true);
 //!
 //!     write_memory!(vm,
-//!        0 => 0x1,
-//!        1 => 0xA,
-//!        2 => 0x1,
-//!        3 => 0x8,
-//!        4 => 0x4,
-//!        5 => 0x0,
-//!        6 => 0x2,
-//!        7 => 0x0,
-//!        8 => 0x6,
-//!        9 => 0xF0
+//!        // Push 10; Pop A; Push 8; Pop B; Add A B; Signal 0xF0 (halt)
+//!        0 => 0x10,
+//!        1 => 0x0A,
+//!        2 => 0x11,
+//!        3 => 0x00,
+//!        4 => 0x10,
+//!        5 => 0x08,
+//!        6 => 0x11,
+//!        7 => 0x01,
+//!        8 => 0x20,
+//!        9 => 0x10,
+//!        10 => 0x50,
+//!        11 => 0xF0
 //!     );
 //!
 //!     while !vm.machine_halted {
@@ -63,6 +66,7 @@
 mod macros;
 mod memory;
 mod op;
+pub mod panic_report;
 mod register;
 mod vm;
 
@@ -94,7 +98,8 @@ mod tests {
     #[test]
     fn unknown_instruction() {
         let mut machine = Machine::new();
-        machine.memory.write(0, 0xF).unwrap();
+        // Low byte is opcode; 0xFF is not a valid opcode.
+        machine.memory.write(0, 0xFF).unwrap();
         assert!(machine.step().is_err());
     }
 
@@ -116,23 +121,27 @@ mod tests {
         machine.define_handler(0xf0, sig_halt);
 
         write_memory!(machine,
-         0 => 0x01,
+         // Push 10; Pop A; Push 8; Pop B; Add A B; Signal 0xF0
+         0 => 0x10,
          1 => 0x0a,
-         2 => 0x01,
-         3 => 0x08,
+         2 => 0x11,
+         3 => 0x00,
          4 => 0x10,
-         5 => 0x00,
-         6 => 0x02,
-         7 => 0x00,
-         8 => 0x0f,
-         9 => 0xf0
+         5 => 0x08,
+         6 => 0x11,
+         7 => 0x01,
+         8 => 0x20,
+         9 => 0x10,
+         10 => 0x50,
+         11 => 0xf0
         );
 
-        machine.step().unwrap(); // PUSH 10
-        machine.step().unwrap(); // PUSH 8
-        machine.step().unwrap(); // ADDSTACK
-        machine.step().unwrap(); // POPREGISTER A
-        machine.step().unwrap(); // SIGNAL 0xF0
+        machine.step().unwrap(); // Push 10
+        machine.step().unwrap(); // Pop A
+        machine.step().unwrap(); // Push 8
+        machine.step().unwrap(); // Pop B
+        machine.step().unwrap(); // Add A B
+        machine.step().unwrap(); // Signal 0xF0
 
         assert_eq!(machine.get_register(Register::A), 18);
 
@@ -141,28 +150,32 @@ mod tests {
 
     #[test]
     fn subsequent_addition() -> Result<(), Box<dyn std::error::Error>> {
-        let mut machine = Machine::new();
-        machine.define_handler(0xf0, sig_halt);
-
         for _ in 1..=2 {
+            let mut machine = Machine::new();
+            machine.define_handler(0xf0, sig_halt);
+
             write_memory!(machine,
-             0 => 0x01,
+             // Push 10; Pop A; Push 8; Pop B; Add A B; Signal 0xF0
+             0 => 0x10,
              1 => 0x0a,
-             2 => 0x01,
-             3 => 0x08,
+             2 => 0x11,
+             3 => 0x00,
              4 => 0x10,
-             5 => 0x00,
-             6 => 0x02,
-             7 => 0x00,
-             8 => 0x0f,
-             9 => 0xf0
+             5 => 0x08,
+             6 => 0x11,
+             7 => 0x01,
+             8 => 0x20,
+             9 => 0x10,
+             10 => 0x50,
+             11 => 0xf0
             );
 
-            machine.step().unwrap(); // PUSH 10
-            machine.step().unwrap(); // PUSH 8
-            machine.step().unwrap(); // ADDSTACK
-            machine.step().unwrap(); // POPREGISTER A
-            machine.step().unwrap(); // SIGNAL 0xF0
+            machine.step().unwrap(); // Push 10
+            machine.step().unwrap(); // Pop A
+            machine.step().unwrap(); // Push 8
+            machine.step().unwrap(); // Pop B
+            machine.step().unwrap(); // Add A B
+            machine.step().unwrap(); // Signal 0xF0
 
             assert_eq!(machine.get_register(Register::A), 18);
         }
