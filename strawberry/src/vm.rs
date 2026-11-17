@@ -124,12 +124,11 @@ impl Machine {
             return Err("Stack pointer went back too far".into());
         };
 
-        self.registers[Register::SP as usize] -= 2;
-
-        self.memory
+        let value = self.memory
             .read_u16(sp)
-            .map_err(|_| format!("Failed to read memory @ 0x{sp:X}"))
-            .map(Ok)?
+            .map_err(|_| format!("Failed to read memory @ 0x{sp:X}"))?;
+        self.registers[Register::SP as usize] = sp;
+        Ok(value)
     }
 
     fn set_flag(&mut self, flag: Flag, set: bool) {

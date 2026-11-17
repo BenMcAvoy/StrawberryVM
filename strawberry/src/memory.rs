@@ -16,27 +16,28 @@ pub trait Addressable {
     fn write(&mut self, addr: u16, value: u8) -> Result<(), DynErr>;
 
     fn read_u16(&self, addr: u16) -> Result<u16, DynErr> {
-        if let Ok(x0) = self.read(addr) {
-            if let Ok(x1) = self.read(addr + 1) {
-                return Ok(u16::from(x0) | (u16::from(x1) << 8));
-            }
-        };
-
-        Err(Error::OutOfBounds(addr).into())
+        let next = addr.checked_add(1).ok_or(Error::OutOfBounds(addr))?;
+        let lower = self.read(addr)?;
+        let upper = self.read(next)?;
+        Ok(u16::from(lower) | (u16::from(upper) << 8))
     }
 
     fn write_u16(&mut self, addr: u16, value: u16) -> Result<(), DynErr> {
+        let next = addr.checked_add(1).ok_or(Error::OutOfBounds(addr))?;
         let lower = value & 0xff;
         let upper = (value & 0xff00) >> 8;
 
         self.write(addr, lower as u8)?;
-        self.write(addr + 1, upper as u8)
+        self.write(next, upper as u8)
     }
 
     fn copy(&mut self, from: u16, to: u16, n: usize) -> Result<(), DynErr> {
         for i in 0..n {
-            let val = self.read(from + u16::try_from(i)?)?;
-            self.write(to + u16::try_from(i)?, val)?;
+            let offset = u16::try_from(i)?;
+            let source = from.checked_add(offset).ok_or(Error::OutOfBounds(from))?;
+            let destination = to.checked_add(offset).ok_or(Error::OutOfBounds(to))?;
+            let val = self.read(source)?;
+            self.write(destination, val)?;
         }
 
         Ok(())
@@ -44,7 +45,9 @@ pub trait Addressable {
 
     fn load(&mut self, from: &[u8], addr: u16) -> Result<(), DynErr> {
         for (i, byte) in from.iter().enumerate() {
-            self.write(addr + u16::try_from(i)?, *byte)?;
+            let offset = u16::try_from(i)?;
+            let destination = addr.checked_add(offset).ok_or(Error::OutOfBounds(addr))?;
+            self.write(destination, *byte)?;
         }
 
         Ok(())
